@@ -201,6 +201,11 @@ def main(top_block_cls=Trial1_SinewaveSrc, options=None):
     # Zyg
     t.start()
 
+    # Zyg
+    # def quitting():
+    #     tb.stop()
+    #     tb.wait()
+
     qapp.connect(qapp, Qt.SIGNAL("aboutToQuit()"), quitting)
     qapp.exec_()
 
