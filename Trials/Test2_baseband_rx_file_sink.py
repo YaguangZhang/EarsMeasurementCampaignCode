@@ -3,7 +3,7 @@
 ##################################################
 # GNU Radio Python Flow Graph
 # Title: Test2 Baseband Rx File Sink
-# Generated: Mon Jun 12 17:08:28 2017
+# Generated: Tue Jun 13 11:37:01 2017
 ##################################################
 
 if __name__ == '__main__':
@@ -20,7 +20,6 @@ from PyQt4 import Qt
 from gnuradio import eng_notation
 from gnuradio import filter
 from gnuradio import gr
-from gnuradio import gr, blocks
 from gnuradio import qtgui
 from gnuradio import uhd
 from gnuradio.eng_option import eng_option
@@ -82,7 +81,7 @@ class Test2_baseband_rx_file_sink(gr.top_block, Qt.QWidget):
         self.uhd_usrp_source_0.set_clock_source('gpsdo', 0)
         self.uhd_usrp_source_0.set_time_source('gpsdo', 0)
         self.uhd_usrp_source_0.set_samp_rate(samp_rate)
-        self.uhd_usrp_source_0.set_center_freq(2.5e9, 0)
+        self.uhd_usrp_source_0.set_center_freq(2.4e9, 0)
         self.uhd_usrp_source_0.set_gain(rx_gain, 0)
         self.uhd_usrp_source_0.set_antenna('TX/RX', 0)
         self.qtgui_time_sink_x_0_0 = qtgui.time_sink_c(
@@ -276,15 +275,12 @@ class Test2_baseband_rx_file_sink(gr.top_block, Qt.QWidget):
         self._freq_range = Range(0.5e9, 1.5e9, 1e6, 1e9, 200)
         self._freq_win = RangeWidget(self._freq_range, self.set_freq, 'Frequencey', "counter_slider", float)
         self.top_layout.addWidget(self._freq_win)
-        self.blocks_file_meta_sink_0 = blocks.file_meta_sink(gr.sizeof_gr_complex*1, 'C:\\Users\\Zyglabs\\Dropbox\\2017_05_Summer_Research\\1_EARS\\EarsMeasurementCampaignCode\\Trials\\Test2_baseband_rx_file_sink.out', samp_rate, 1, blocks.GR_FILE_FLOAT, True, 1000000, "", False)
-        self.blocks_file_meta_sink_0.set_unbuffered(False)
 
         ##################################################
         # Connections
         ##################################################
         self.connect((self.low_pass_filter_0, 0), (self.qtgui_freq_sink_x_0_0, 0))
         self.connect((self.low_pass_filter_0, 0), (self.qtgui_time_sink_x_0_0, 0))
-        self.connect((self.uhd_usrp_source_0, 0), (self.blocks_file_meta_sink_0, 0))
         self.connect((self.uhd_usrp_source_0, 0), (self.low_pass_filter_0, 0))
         self.connect((self.uhd_usrp_source_0, 0), (self.qtgui_freq_sink_x_0, 0))
         self.connect((self.uhd_usrp_source_0, 0), (self.qtgui_time_sink_x_0, 0))

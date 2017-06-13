@@ -87,7 +87,7 @@ class Test2_baseband_rx_file_sink(gr.top_block, Qt.QWidget):
         self.uhd_usrp_source_0.set_clock_source('gpsdo', 0)
         self.uhd_usrp_source_0.set_time_source('gpsdo', 0)
         self.uhd_usrp_source_0.set_samp_rate(samp_rate)
-        self.uhd_usrp_source_0.set_center_freq(2.5e9, 0)
+        self.uhd_usrp_source_0.set_center_freq(2.4e9, 0)
         self.uhd_usrp_source_0.set_gain(rx_gain, 0)
         self.uhd_usrp_source_0.set_antenna('TX/RX', 0)
         self.qtgui_time_sink_x_0_0 = qtgui.time_sink_c(
@@ -364,7 +364,7 @@ def main(top_block_cls=Test2_baseband_rx_file_sink, options=None):
     # def quitting():
     #     tb.stop()
     #     tb.wait()
-    
+
     qapp.connect(qapp, Qt.SIGNAL("aboutToQuit()"), quitting)
     qapp.exec_()
 
