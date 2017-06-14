@@ -12,8 +12,10 @@ from lib import safelyOpenSerial, stripNewlines
 Custom variables.
 '''
 BAUD = 9600
-PORT_X = 'COM5'
+PORT_X = 'COM12'
+PORT_Z = 'COM14'
 CMDS_FILE_NAME = 'MIMO_Measurements_Code.txt'
+MAX_MOVING_TIME = 150 # In second.
 
 '''
 The Script.
@@ -21,7 +23,8 @@ The Script.
 print('Summary for autoRunMeasuremnts.py')
 print('    BAUD: '+str(BAUD))
 print('    PORT_X: '+PORT_X)
-#TODO: PORT_Z
+print('    PORT_Z: '+PORT_Z)
+print('    MAX_MOVING_TIME: '+str(MAX_MOVING_TIME))
 print('')
 
 print('Summary for USRP')
@@ -42,7 +45,7 @@ print('')
 print('Opening RS-232 ports...')
 # Open the RS-232 ports.
 serX = safelyOpenSerial.openPort(PORT_X, BAUD, 1)
-# TODO: serZ
+serZ = safelyOpenSerial.openPort(PORT_Z, BAUD, 1)
 print('All ports opened!')
 print('\r\n')
 
@@ -54,8 +57,9 @@ for idx, cmd in enumerate(cmds):
     if cmd[0]=='X':
         serX.write((cmd[1:]+'\r\n').encode('ascii'))
         print(' - Sent to X: ' + cmd[1:])
-        # For debugging.
-        # time.sleep(1) # In second.
+    elif cmd[0]=='Z':
+        serZ.write((cmd[1:]+'\r\n').encode('ascii'))
+        print(' + Sent to Z: ' + cmd[1:])
     elif cmd=='Q':
         # Make sure motor for axis X is done before the measurement.
         print('------------------------------------')
@@ -66,7 +70,7 @@ for idx, cmd in enumerate(cmds):
             print('    Initial read trial received: "' + respX + '"' )
 
             numReadsX = 1;
-            while(respX != 'DONE'):
+            while('DONE' not in respX):
                 respX = stripNewlines.stripStr(serX.readline())
                 numReadsX += 1
                 print('    #'+str(numReadsX)+' read trial received: "' \
@@ -78,9 +82,29 @@ for idx, cmd in enumerate(cmds):
             print('Error: Not able to read from serX!')
             print(e)
 
-            # TODO: serZ
+        # Make sure motor for axis Z is done before the measurement.
+        print('++++++++++++++++++++++++++++++++++++')
+        print('Checking whether Z is done moving...')
+        serZ.write('SSDONE\r\n'.encode('ascii'))
+        try:
+            respZ = stripNewlines.stripStr(serZ.readline())
+            print('    Initial read trial received: "' + respZ + '"' )
 
-        if stripNewlines.stripStr(respX) =='DONE':
+            numReadsZ = 1;
+            while('DONE' not in respZ):
+                respZ = stripNewlines.stripStr(serZ.readline())
+                numReadsZ += 1
+                print('    #'+str(numReadsZ)+' read trial received: "' \
+                    + respZ + '"' )
+
+            print('Z done moving!')
+            print('++++++++++++++++++++++++++++++++++++')
+        except Exception as e:
+            print('Error: Not able to read from serZ!')
+            print(e)
+
+        if (stripNewlines.stripStr(respX) =='DONE' and \
+            stripNewlines.stripStr(respZ) =='DONE'):
             print('==============================')
             print('Initiating new measurement...')
             print('')
@@ -92,6 +116,14 @@ for idx, cmd in enumerate(cmds):
             print('Measurement done!')
             print('==============================')
         else:
-            print("Servo for axis X is not ready as expected!")
-            print("    Expecting DONE but received: " + respX)
+            if (stripNewlines.stripStr(respX) !='DONE'):
+                print('')
+                print('Servo for axis X is not ready as expected!')
+                print('    Expecting "DONE" but received: ""' + respX + '"')
+                print('')
+            if (stripNewlines.stripStr(respZ) !='DONE'):
+                print('')
+                print('Servo for axis Z is not ready as expected!')
+                print('    Expecting "DONE" but received: ""' + respX + '"')
+                print('')
 # EOF
