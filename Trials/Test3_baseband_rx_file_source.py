@@ -3,7 +3,7 @@
 ##################################################
 # GNU Radio Python Flow Graph
 # Title: Test3 Baseband Rx File Source
-# Generated: Mon Jun 12 17:09:05 2017
+# Generated: Wed Jun 14 17:17:38 2017
 ##################################################
 
 if __name__ == '__main__':
@@ -21,7 +21,6 @@ from gnuradio import blocks
 from gnuradio import eng_notation
 from gnuradio import filter
 from gnuradio import gr
-from gnuradio import gr, blocks
 from gnuradio import qtgui
 from gnuradio.eng_option import eng_option
 from gnuradio.filter import firdes
@@ -263,12 +262,12 @@ class Test3_baseband_rx_file_source(gr.top_block, Qt.QWidget):
         self._freq_win = RangeWidget(self._freq_range, self.set_freq, 'Frequencey', "counter_slider", float)
         self.top_layout.addWidget(self._freq_win)
         self.blocks_throttle_0 = blocks.throttle(gr.sizeof_gr_complex*1, samp_rate,True)
-        self.blocks_file_meta_source_0 = blocks.file_meta_source('C:\\Users\\Zyglabs\\Dropbox\\2017_05_Summer_Research\\1_EARS\\EarsMeasurementCampaignCode\\Trials\\Test2_baseband_rx_file_sink.out', True, False, '')
+        self.blocks_file_source_0 = blocks.file_source(gr.sizeof_gr_complex*1, 'C:\\Users\\Zyglabs\\Dropbox\\2017_05_Summer_Research\\1_EARS\\EarsMeasurementCampaignCode\\Test2_baseband_rx_file_sink_Mod_1497474090.out', False)
 
         ##################################################
         # Connections
         ##################################################
-        self.connect((self.blocks_file_meta_source_0, 0), (self.blocks_throttle_0, 0))
+        self.connect((self.blocks_file_source_0, 0), (self.blocks_throttle_0, 0))
         self.connect((self.blocks_throttle_0, 0), (self.low_pass_filter_0, 0))
         self.connect((self.blocks_throttle_0, 0), (self.qtgui_freq_sink_x_0, 0))
         self.connect((self.blocks_throttle_0, 0), (self.qtgui_time_sink_x_0, 0))

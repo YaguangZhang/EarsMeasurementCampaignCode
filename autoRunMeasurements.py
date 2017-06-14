@@ -33,6 +33,14 @@ sys.stdout.flush()
 os.system('uhd_find_devices')
 print('')
 
+countdown = 5
+print("Please terminate the operation (ctrl + c) if USRP isn't there!")
+while countdown > 0:
+    print('    Start measurements in ' + str(countdown) + 's...')
+    time.sleep(1)
+    countdown -= 1
+print('')
+
 # Read in the commands.
 print('Loading commands from .txt file: ' + CMDS_FILE_NAME +'...')
 with open(CMDS_FILE_NAME) as f:
@@ -70,7 +78,7 @@ for idx, cmd in enumerate(cmds):
             print('    Initial read trial received: "' + respX + '"' )
 
             numReadsX = 1;
-            while('DONE' not in respX):
+            while('DONE' not in respX and numReadsX<MAX_MOVING_TIME):
                 respX = stripNewlines.stripStr(serX.readline())
                 numReadsX += 1
                 print('    #'+str(numReadsX)+' read trial received: "' \
@@ -91,7 +99,7 @@ for idx, cmd in enumerate(cmds):
             print('    Initial read trial received: "' + respZ + '"' )
 
             numReadsZ = 1;
-            while('DONE' not in respZ):
+            while('DONE' not in respZ and numReadsZ<MAX_MOVING_TIME):
                 respZ = stripNewlines.stripStr(serZ.readline())
                 numReadsZ += 1
                 print('    #'+str(numReadsZ)+' read trial received: "' \
@@ -111,7 +119,7 @@ for idx, cmd in enumerate(cmds):
             print('    Time Stamp: ' + str(int(time.time())))
             print('')
             sys.stdout.flush()
-            os.system('py -2.7 ./measureSignal.py')
+            #os.system('py -2.7 ./measureSignal.py')
             print('')
             print('Measurement done!')
             print('==============================')

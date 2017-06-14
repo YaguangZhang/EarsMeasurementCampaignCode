@@ -321,11 +321,11 @@
     </param>
     <param>
       <key>_enabled</key>
-      <value>True</value>
+      <value>0</value>
     </param>
     <param>
       <key>file</key>
-      <value>C:\Users\Zyglabs\Dropbox\2017_05_Summer_Research\1_EARS\EarsMeasurementCampaignCode\Trials\Test2_baseband_rx_file_sink.out</value>
+      <value>C:\Users\Zyglabs\Dropbox\2017_05_Summer_Research\1_EARS\EarsMeasurementCampaignCode\Test2_baseband_rx_file_sink_Mod_1497474090.out</value>
     </param>
     <param>
       <key>_coordinate</key>
@@ -380,11 +380,11 @@
     </param>
     <param>
       <key>_enabled</key>
-      <value>0</value>
+      <value>1</value>
     </param>
     <param>
       <key>file</key>
-      <value>C:\Users\Zyglabs\Dropbox\2017_05_Summer_Research\1_EARS\EarsMeasurementCampaignCode\Trials\ModifiedPyFiles\Test2_baseband_rx_file_sink_Mod_1497301545.out</value>
+      <value>C:\Users\Zyglabs\Dropbox\2017_05_Summer_Research\1_EARS\EarsMeasurementCampaignCode\Test2_baseband_rx_file_sink_Mod_1497474090.out</value>
     </param>
     <param>
       <key>_coordinate</key>
