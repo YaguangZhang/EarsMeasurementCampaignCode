@@ -3,15 +3,15 @@
 
 import serial, time, os
 
-strsToSend = ['FL500000']*5
-#strsToSend = ['Hello ...', 'My name is Python ...', 'What is your name?', '...']
+cmdsToSend = ['FL500000\r\n']*5
+strsToSend = ['Hello ...', 'My name is Python ...', 'What is your name?', '...', 'Bye~']
 
 port = "COM5"
-baud = 19200
-ser = serial.Serial(port, baud, timeout=1)
+baud = 9600
+ser5 = serial.Serial(port, baud, timeout=1)
 
-for str in strsToSend:
-    ser.write(str.encode('ascii'))
+for idx, str in enumerate(cmdsToSend):
+    ser5.write(str.encode('ascii'))
     time.sleep(5) # In second.
 
     # Test2_baseband_rx_file_sink_Mod.main()

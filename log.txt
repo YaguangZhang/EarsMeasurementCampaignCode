@@ -1,0 +1,25 @@
+Summary for autoRunMeasuremnts.py
+    BAUD: 9600
+    PORT_X: COM5
+
+Summary for USRP
+Win32; Microsoft Visual C++ version 14.0; Boost_106000; UHD_003.010.001.001-0-unknown
+
+-- Loading firmware image: C:\Program Files\GNURadio-3.7\share\uhd\images\usrp_b200_fw.hex...
+--------------------------------------------------
+-- UHD Device 0
+--------------------------------------------------
+Device Address:
+    type: b200
+    name: 
+    serial: 307B54D
+    product: B200
+
+
+
+Loading commands from .txt file: MIMO_Measurements_Code.txt...
+Commands loaded!
+
+Opening RS-232 ports...
+Failed in opening Port COM5!
+local variable 'ser' referenced before assignment

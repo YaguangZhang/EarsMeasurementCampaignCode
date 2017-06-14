@@ -1,7 +1,7 @@
 import serial
 
 port = "COM5"
-baud = 19200
+baud = 9600
 
 ser = serial.Serial(port, baud, timeout=1)
     # open the serial port
