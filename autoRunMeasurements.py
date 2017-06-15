@@ -14,12 +14,14 @@ Custom variables.
 BAUD = 9600
 PORT_X = 'COM12'
 PORT_Z = 'COM14'
-CMDS_FILE_NAME = 'MIMO_Measurements_Code.txt'
-MAX_MOVING_TIME = 150 # In second.
+CMDS_FILE_NAME = 'MIMO_Measurements_Cmds.txt'
+MAX_MOVING_TIME = 300 # In second.
 
 '''
 The Script.
 '''
+FLAG_DEBUG_X_Z_POS_SYS = True
+
 print('Summary for autoRunMeasuremnts.py')
 print('    BAUD: '+str(BAUD))
 print('    PORT_X: '+PORT_X)
@@ -41,6 +43,9 @@ while countdown > 0:
     countdown -= 1
 print('')
 
+# Timing the measurements.
+tStart = time.time()
+
 # Read in the commands.
 print('Loading commands from .txt file: ' + CMDS_FILE_NAME +'...')
 with open(CMDS_FILE_NAME) as f:
@@ -61,13 +66,14 @@ print('Starting auto-measurements...')
 # Send the commands for the servos and run a signal measurement whenever there
 # is a "Q". Note that a servo command will start with the name for the axis
 # (i.e. X and Z) to which that command should be sent.
+totalNumCmds = len(cmds)
 for idx, cmd in enumerate(cmds):
     if cmd[0]=='X':
         serX.write((cmd[1:]+'\r\n').encode('ascii'))
-        print(' - Sent to X: ' + cmd[1:])
+        print(' - ('+str(idx)+'/'+str(totalNumCmds)+') Sent to X: ' + cmd[1:])
     elif cmd[0]=='Z':
         serZ.write((cmd[1:]+'\r\n').encode('ascii'))
-        print(' + Sent to Z: ' + cmd[1:])
+        print(' + ('+str(idx)+'/'+str(totalNumCmds)+') Sent to Z: ' + cmd[1:])
     elif cmd=='Q':
         # Make sure motor for axis X is done before the measurement.
         print('------------------------------------')
@@ -119,19 +125,38 @@ for idx, cmd in enumerate(cmds):
             print('    Time Stamp: ' + str(int(time.time())))
             print('')
             sys.stdout.flush()
-            #os.system('py -2.7 ./measureSignal.py')
+            if (not FLAG_DEBUG_X_Z_POS_SYS):
+                os.system('py -2.7 ./measureSignal.py')
             print('')
             print('Measurement done!')
             print('==============================')
         else:
             if (stripNewlines.stripStr(respX) !='DONE'):
                 print('')
-                print('Servo for axis X is not ready as expected!')
+                print('Error: servo for axis X timed out!')
+                print('    Servo for axis X is not ready as expected...')
                 print('    Expecting "DONE" but received: ""' + respX + '"')
                 print('')
             if (stripNewlines.stripStr(respZ) !='DONE'):
                 print('')
-                print('Servo for axis Z is not ready as expected!')
+                print('Error: servo for axis Z timed out!')
+                print('    Servo for axis Z is not ready as expected...')
                 print('    Expecting "DONE" but received: ""' + respX + '"')
                 print('')
+
+            serX.write('FP0\r\n'.encode('ascii'))
+            serZ.write('FP0\r\n'.encode('ascii'))
+            print('Homing commands sent to both servos.')
+            print('Measurements terminated...')
+            break
+    else:
+        print('')
+        print('('+str(idx)+'/'+str(totalNumCmds)+') Ignored unknown command: ' + cmd)
+        print('')
+
+# Timing the measurements: show results.
+tUsed = time.time() - tStart
+print('')
+print('Total time used for the measurements: ' + "{:.2f}".format(tUsed) + 's')
+print('                                     =' + "{:.2f}".format(tUsed/60) + 'min')
 # EOF

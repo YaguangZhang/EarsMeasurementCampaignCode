@@ -1,4 +1,4 @@
-# Remove \n and \r (if there is any).
+# Only remove \n and \r (if there is any).
 #
 # Yaguang Zhang, Purdue University, 2017-06-13
 
