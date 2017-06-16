@@ -39,7 +39,7 @@ from threading import Timer
 from lib import gpsdo
 curFileDir = os.path.dirname(os.path.realpath(__file__))
 MAX_RX_GAIN = 76
-startRxGain = 30
+startRxGain = 36
 # Make sure it's not out of range
 if startRxGain > MAX_RX_GAIN:
     startRxGain = MAX_RX_GAIN
@@ -288,7 +288,7 @@ class measureSignalOriginal(gr.top_block, Qt.QWidget):
         self._qtgui_freq_sink_x_0_win = sip.wrapinstance(self.qtgui_freq_sink_x_0.pyqwidget(), Qt.QWidget)
         self.top_layout.addWidget(self._qtgui_freq_sink_x_0_win)
         self.low_pass_filter_0 = filter.fir_filter_ccf(1, firdes.low_pass(
-        	1, samp_rate, 120e3, 10e3, firdes.WIN_HAMMING, 6.76))
+        	1, samp_rate, 60e3, 5e3, firdes.WIN_HAMMING, 6.76))
 
         # ZYG
         self.epochTimeStrForLogFile = str(int(time.time()))
@@ -338,7 +338,7 @@ class measureSignalOriginal(gr.top_block, Qt.QWidget):
         self.qtgui_time_sink_x_0.set_samp_rate(self.samp_rate)
         self.qtgui_freq_sink_x_0_0.set_frequency_range(0, self.samp_rate)
         self.qtgui_freq_sink_x_0.set_frequency_range(0, self.samp_rate)
-        self.low_pass_filter_0.set_taps(firdes.low_pass(1, self.samp_rate, 120e3, 10e3, firdes.WIN_HAMMING, 6.76))
+        self.low_pass_filter_0.set_taps(firdes.low_pass(1, self.samp_rate, 60e3, 5e3, firdes.WIN_HAMMING, 6.76))
 
     def get_rx_gain(self):
         return self.rx_gain

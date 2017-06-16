@@ -12,7 +12,7 @@ from lib import safelyOpenSerial, stripNewlines
 Custom variables.
 '''
 BAUD = 9600
-PORT_X = 'COM12'
+PORT_X = 'COM13'
 PORT_Z = 'COM14'
 CMDS_FILE_NAME = 'MIMO_Measurements_Cmds.txt'
 MAX_MOVING_TIME = 300 # In second.
@@ -20,7 +20,7 @@ MAX_MOVING_TIME = 300 # In second.
 '''
 The Script.
 '''
-FLAG_DEBUG_X_Z_POS_SYS = True
+FLAG_DEBUG_X_Z_POS_SYS = False
 
 print('Summary for autoRunMeasuremnts.py')
 print('    BAUD: '+str(BAUD))
