@@ -3,7 +3,7 @@
 ##################################################
 # GNU Radio Python Flow Graph
 # Title: Measuresignaloriginal
-# Generated: Thu Jun 15 17:41:29 2017
+# Generated: Fri Jun 16 16:09:14 2017
 ##################################################
 
 if __name__ == '__main__':
@@ -17,7 +17,6 @@ if __name__ == '__main__':
             print "Warning: failed to XInitThreads()"
 
 from PyQt4 import Qt
-from gnuradio import blocks
 from gnuradio import eng_notation
 from gnuradio import filter
 from gnuradio import gr
@@ -63,7 +62,7 @@ class measureSignalOriginal(gr.top_block, Qt.QWidget):
         # Variables
         ##################################################
         self.time_sink_trigger_level = time_sink_trigger_level = 0.3
-        self.samp_rate = samp_rate = 1.04e6
+        self.samp_rate = samp_rate = 2.08e6
         self.rx_gain = rx_gain = 30
 
         ##################################################
@@ -104,7 +103,7 @@ class measureSignalOriginal(gr.top_block, Qt.QWidget):
         self.qtgui_time_sink_x_0_0.enable_autoscale(False)
         self.qtgui_time_sink_x_0_0.enable_grid(False)
         self.qtgui_time_sink_x_0_0.enable_axis_labels(True)
-        self.qtgui_time_sink_x_0_0.enable_control_panel(False)
+        self.qtgui_time_sink_x_0_0.enable_control_panel(True)
 
         if not True:
           self.qtgui_time_sink_x_0_0.disable_legend()
@@ -154,7 +153,7 @@ class measureSignalOriginal(gr.top_block, Qt.QWidget):
         self.qtgui_time_sink_x_0.enable_autoscale(False)
         self.qtgui_time_sink_x_0.enable_grid(False)
         self.qtgui_time_sink_x_0.enable_axis_labels(True)
-        self.qtgui_time_sink_x_0.enable_control_panel(False)
+        self.qtgui_time_sink_x_0.enable_control_panel(True)
 
         if not True:
           self.qtgui_time_sink_x_0.disable_legend()
@@ -204,7 +203,7 @@ class measureSignalOriginal(gr.top_block, Qt.QWidget):
         self.qtgui_freq_sink_x_0_0.enable_grid(False)
         self.qtgui_freq_sink_x_0_0.set_fft_average(1.0)
         self.qtgui_freq_sink_x_0_0.enable_axis_labels(True)
-        self.qtgui_freq_sink_x_0_0.enable_control_panel(False)
+        self.qtgui_freq_sink_x_0_0.enable_control_panel(True)
 
         if not True:
           self.qtgui_freq_sink_x_0_0.disable_legend()
@@ -247,7 +246,7 @@ class measureSignalOriginal(gr.top_block, Qt.QWidget):
         self.qtgui_freq_sink_x_0.enable_grid(False)
         self.qtgui_freq_sink_x_0.set_fft_average(1.0)
         self.qtgui_freq_sink_x_0.enable_axis_labels(True)
-        self.qtgui_freq_sink_x_0.enable_control_panel(False)
+        self.qtgui_freq_sink_x_0.enable_control_panel(True)
 
         if not True:
           self.qtgui_freq_sink_x_0.disable_legend()
@@ -276,18 +275,12 @@ class measureSignalOriginal(gr.top_block, Qt.QWidget):
         self.top_layout.addWidget(self._qtgui_freq_sink_x_0_win)
         self.low_pass_filter_0 = filter.fir_filter_ccf(1, firdes.low_pass(
         	1, samp_rate, 60e3, 5e3, firdes.WIN_HAMMING, 6.76))
-        self.blocks_file_sink_0_0 = blocks.file_sink(gr.sizeof_gr_complex*1, 'C:\\Users\\Zyglabs\\Dropbox\\2017_05_Summer_Research\\1_EARS\\EarsMeasurementCampaignCode\\Trials\\Test2_baseband_rx_file_sink_filtered.out', False)
-        self.blocks_file_sink_0_0.set_unbuffered(False)
-        self.blocks_file_sink_0 = blocks.file_sink(gr.sizeof_gr_complex*1, 'C:\\Users\\Zyglabs\\Dropbox\\2017_05_Summer_Research\\1_EARS\\EarsMeasurementCampaignCode\\Trials\\Test2_baseband_rx_file_sink.out', False)
-        self.blocks_file_sink_0.set_unbuffered(False)
 
         ##################################################
         # Connections
         ##################################################
-        self.connect((self.low_pass_filter_0, 0), (self.blocks_file_sink_0_0, 0))
         self.connect((self.low_pass_filter_0, 0), (self.qtgui_freq_sink_x_0_0, 0))
         self.connect((self.low_pass_filter_0, 0), (self.qtgui_time_sink_x_0_0, 0))
-        self.connect((self.uhd_usrp_source_0, 0), (self.blocks_file_sink_0, 0))
         self.connect((self.uhd_usrp_source_0, 0), (self.low_pass_filter_0, 0))
         self.connect((self.uhd_usrp_source_0, 0), (self.qtgui_freq_sink_x_0, 0))
         self.connect((self.uhd_usrp_source_0, 0), (self.qtgui_time_sink_x_0, 0))

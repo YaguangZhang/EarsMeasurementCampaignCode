@@ -39,7 +39,8 @@ from threading import Timer
 from lib import gpsdo
 curFileDir = os.path.dirname(os.path.realpath(__file__))
 MAX_RX_GAIN = 76
-startRxGain = 36
+startRxGain = 76
+FLAG_LOCK_GPSDO = True
 # Make sure it's not out of range
 if startRxGain > MAX_RX_GAIN:
     startRxGain = MAX_RX_GAIN
@@ -75,14 +76,14 @@ class measureSignalOriginal(gr.top_block, Qt.QWidget):
         ##################################################
         # Variables
         ##################################################
-        self.time_sink_trigger_level = time_sink_trigger_level = 0.3
+        self.time_sink_trigger_level = time_sink_trigger_level = 0.1
         self.samp_rate = samp_rate = 1.04e6
         self.rx_gain = rx_gain = startRxGain
 
         ##################################################
         # Blocks
         ##################################################
-        self._time_sink_trigger_level_range = Range(0.05, 1, 0.05, 0.3, 200)
+        self._time_sink_trigger_level_range = Range(0.05, 1, 0.05, 0.1, 200)
         self._time_sink_trigger_level_win = RangeWidget(self._time_sink_trigger_level_range, self.set_time_sink_trigger_level, "time_sink_trigger_level", "counter_slider", float)
         self.top_layout.addWidget(self._time_sink_trigger_level_win)
         self._rx_gain_range = Range(1, MAX_RX_GAIN, 1, startRxGain, 200)
@@ -363,16 +364,24 @@ def main(top_block_cls=measureSignalOriginal, options=None):
     def quitting():
             tb.stop()
             tb.wait()
-    def quiteFromTimer():
-        print(tb.uhd_usrp_source_0)
+    def logGps():
         gpsDo = gpsdo.gpsdo(tb.uhd_usrp_source_0, \
             os.path.join(tb.outFilesPath, \
             'measureSignal_'+tb.epochTimeStrForLogFile+'_GPS.log'))
         gpsDo.log(tb.get_rx_gain())
+    def probeGps():
+        logGps()
+        Timer(1, probeGps).start()
+    def quiteFromTimer():
+        print(tb.uhd_usrp_source_0)
+        logGps()
         print('Quitting by Timer...')
         quitting()
         qapp.quit()
-    t = Timer(3.0, quiteFromTimer)
+    if FLAG_LOCK_GPSDO:
+        probeGps()
+    else:
+        t = Timer(20.0, quiteFromTimer)
 
     tb.start()
     tb.show()
