@@ -12,6 +12,7 @@ class gpsdo:
       mboardSersorNames = usrp.get_mboard_sensor_names()
       self.usrp = usrp
       self.logFilePath = LOG_FILE_PATH
+
       print(DEBUG_DIV_MARKER)
       print('Initialized GPSDO.')
       print('')

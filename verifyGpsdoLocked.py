@@ -40,7 +40,7 @@ from lib import gpsdo
 curFileDir = os.path.dirname(os.path.realpath(__file__))
 MAX_RX_GAIN = 76
 startRxGain = 76
-FLAG_TRY_TO_LOCK_GPSDO = false
+FLAG_TRY_TO_LOCK_GPSDO = True
 # Make sure it's not out of range
 if startRxGain > MAX_RX_GAIN:
     startRxGain = MAX_RX_GAIN
