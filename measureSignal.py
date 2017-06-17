@@ -40,7 +40,7 @@ from lib import gpsdo
 curFileDir = os.path.dirname(os.path.realpath(__file__))
 MAX_RX_GAIN = 76
 startRxGain = 76
-FLAG_TRY_TO_LOCK_GPSDO = false
+FLAG_TRY_TO_LOCK_GPSDO = False
 # Make sure it's not out of range
 if startRxGain > MAX_RX_GAIN:
     startRxGain = MAX_RX_GAIN
@@ -295,7 +295,7 @@ class measureSignalOriginal(gr.top_block, Qt.QWidget):
         self.epochTimeStrForLogFile = str(int(time.time()))
         outFileName = 'measureSignal_'+self.epochTimeStrForLogFile+'.out'
         outFileFilteredName = 'measureSignal_'+self.epochTimeStrForLogFile+'_filtered.out'
-        self.outFilesPath = curFileDir
+        self.outFilesPath = os.path.join(curFileDir, 'measureSignalOutput')
         outFilePath = os.path.join(self.outFilesPath, outFileName)
         outFileFilteredPath = os.path.join(self.outFilesPath, outFileFilteredName)
 

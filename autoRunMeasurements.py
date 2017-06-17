@@ -14,7 +14,7 @@ Custom variables.
 BAUD = 9600
 PORT_X = 'COM13'
 PORT_Z = 'COM14'
-CMDS_FILE_NAME = 'MIMO_Measurements_Cmds.txt'
+CMDS_FILE_NAME = 'Measurements_Cmds_LargeScale.txt'
 MAX_MOVING_TIME = 300 # In second.
 
 '''
