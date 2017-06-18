@@ -3,7 +3,7 @@
 ##################################################
 # GNU Radio Python Flow Graph
 # Title: Measuresignaloriginal
-# Generated: Fri Jun 16 19:41:58 2017
+# Generated: Sat Jun 17 17:50:16 2017
 ##################################################
 
 if __name__ == '__main__':
@@ -61,17 +61,17 @@ class measureSignalOriginal(gr.top_block, Qt.QWidget):
         ##################################################
         # Variables
         ##################################################
-        self.time_sink_trigger_level = time_sink_trigger_level = 0.3
+        self.time_sink_trigger_level = time_sink_trigger_level = 0.002
         self.samp_rate = samp_rate = 2.08e6
-        self.rx_gain = rx_gain = 30
+        self.rx_gain = rx_gain = 76
 
         ##################################################
         # Blocks
         ##################################################
-        self._time_sink_trigger_level_range = Range(0.05, 1, 0.05, 0.3, 200)
+        self._time_sink_trigger_level_range = Range(0.0001, 1, 0.0001, 0.002, 200)
         self._time_sink_trigger_level_win = RangeWidget(self._time_sink_trigger_level_range, self.set_time_sink_trigger_level, "time_sink_trigger_level", "counter_slider", float)
         self.top_layout.addWidget(self._time_sink_trigger_level_win)
-        self._rx_gain_range = Range(1, 76, 1, 30, 200)
+        self._rx_gain_range = Range(1, 76, 1, 76, 200)
         self._rx_gain_win = RangeWidget(self._rx_gain_range, self.set_rx_gain, 'Receiver Gain', "counter_slider", float)
         self.top_layout.addWidget(self._rx_gain_win)
         self.uhd_usrp_source_0 = uhd.usrp_source(

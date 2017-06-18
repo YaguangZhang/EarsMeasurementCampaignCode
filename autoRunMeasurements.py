@@ -12,9 +12,9 @@ from lib import safelyOpenSerial, stripNewlines
 Custom variables.
 '''
 BAUD = 9600
-PORT_X = 'COM13'
-PORT_Z = 'COM14'
-CMDS_FILE_NAME = 'Measurements_Cmds_LargeScale.txt'
+PORT_X = 'COM14'
+PORT_Z = 'COM12'
+CMDS_FILE_NAME = 'Measurements_Cmds_LargeScale_Slower.txt'
 MAX_MOVING_TIME = 300 # In second.
 
 '''
