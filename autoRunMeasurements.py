@@ -12,8 +12,8 @@ from lib import safelyOpenSerial, stripNewlines
 Custom variables.
 '''
 BAUD = 9600
-PORT_X = 'COM14'
-PORT_Z = 'COM12'
+PORT_X = 'COM13'
+PORT_Z = 'COM14'
 CMDS_FILE_NAME = 'Measurements_Cmds_LargeScale_Slower.txt'
 MAX_MOVING_TIME = 300 # In second.
 
@@ -48,7 +48,7 @@ tStart = time.time()
 
 # Read in the commands.
 print('Loading commands from .txt file: ' + CMDS_FILE_NAME +'...')
-with open(CMDS_FILE_NAME) as f:
+with open(os.path.join('Cmds', CMDS_FILE_NAME)) as f:
     cmds = f.readlines()
 # Remove \n and \r (if there is any)
 cmds = stripNewlines.stripStrArray(cmds)

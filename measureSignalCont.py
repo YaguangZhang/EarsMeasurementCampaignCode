@@ -39,7 +39,7 @@ from threading import Timer
 from lib import gpsdo
 curFileDir = os.path.dirname(os.path.realpath(__file__))
 MAX_RX_GAIN = 76
-startRxGain = 73
+startRxGain = 70
 FLAG_TRY_TO_LOCK_GPSDO = False
 # Make sure it's not out of range
 if startRxGain > MAX_RX_GAIN:
@@ -293,8 +293,8 @@ class measureSignalOriginal(gr.top_block, Qt.QWidget):
 
         # ZYG
         self.epochTimeStrForLogFile = str(int(time.time()))
-        outFileName = 'measureSignal_'+self.epochTimeStrForLogFile+'.out'
-        outFileFilteredName = 'measureSignal_'+self.epochTimeStrForLogFile+'_filtered.out'
+        outFileName = 'measureSignalCont_'+self.epochTimeStrForLogFile+'.out'
+        outFileFilteredName = 'measureSignalCont_'+self.epochTimeStrForLogFile+'_filtered.out'
         self.outFilesPath = os.path.join(curFileDir, 'measureSignalOutput')
         outFilePath = os.path.join(self.outFilesPath, outFileName)
         outFileFilteredPath = os.path.join(self.outFilesPath, outFileFilteredName)
@@ -367,8 +367,15 @@ def main(top_block_cls=measureSignalOriginal, options=None):
     def logGps():
         gpsDo = gpsdo.gpsdo(tb.uhd_usrp_source_0, \
             os.path.join(tb.outFilesPath, \
-            'measureSignal_'+tb.epochTimeStrForLogFile+'_GPS.log'))
+            'measureSignalCont_'+tb.epochTimeStrForLogFile+'_GPS.log'))
         gpsDo.log(tb.get_rx_gain())
+    def logGpsCont():
+        gpsDo = gpsdo.gpsdo(tb.uhd_usrp_source_0, \
+            os.path.join(tb.outFilesPath, \
+            'measureSignalCont_'+str(int(time.time()))+'_GPS.log'))
+        gpsDo.log(tb.get_rx_gain())
+        t = Timer(1.0, logGpsCont)
+        t.start()
     keepProbingGps = True
     def probeGps():
         logGps()
@@ -390,16 +397,17 @@ def main(top_block_cls=measureSignalOriginal, options=None):
         print(tb.uhd_usrp_source_0.get_mboard_sensor_names())
         print(' ')
         time.sleep(3)
-        t = Timer(240.0, quiteFromTimer)
+        # t = Timer(240.0, quiteFromTimer)
         probeGps()
-    else:
-        t = Timer(3.0, quiteFromTimer)
+    # else:
+        # t = Timer(3.0, logGpsNewFile)
 
     tb.start()
     tb.show()
 
     # ZYG
-    t.start()
+    logGpsCont()
+    # t.start()
 
     # ZYG
     # def quitting():
