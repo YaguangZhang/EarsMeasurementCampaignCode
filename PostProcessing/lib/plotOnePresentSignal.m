@@ -13,7 +13,7 @@ function [ hFig ] = plotOnePresentSignal( signal, ...
 %
 % Yaguang Zhang, Purdue, 06/18/2017
 
-RATIO_VS_TALLEST = 0.8;
+RATIO_VS_TALLEST = 0.9;
 
 signalReal = real(signal);
 signalImag = imag(signal);

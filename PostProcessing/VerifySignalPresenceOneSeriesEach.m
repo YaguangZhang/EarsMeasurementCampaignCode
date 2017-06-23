@@ -10,7 +10,7 @@ addpath(fullfile(pwd, '..', 'gnuradio-tools', 'matlab'));
 addpath(genpath(fullfile(pwd, 'lib')));
 
 PATH_FOLDER_TO_PROCESS = fullfile(pwd, '..', '..', 'Data', ...
-    '20170617_LargeScale'); %'20170619_LargeScale'); %
+    '20170620_LargeScale'); %'20170619_LargeScale'); %
 % Use this to limit what subfolders will be processed.
 subfolderPattern = '^Series_(\d+)$';
 

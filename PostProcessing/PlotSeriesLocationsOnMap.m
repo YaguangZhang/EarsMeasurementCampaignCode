@@ -13,7 +13,7 @@ addpath(fullfile(pwd));
 addpath(genpath(fullfile(pwd, 'lib')));
 
 PATH_FOLDER_TO_PROCESS = fullfile(pwd, '..', '..', 'Data', ...
-    '20170619_LargeScale'); %'20170617_LargeScale');
+    '20170621_MISO'); %'20170617_LargeScale');
 
 %% For each folder, read in all the GPS log files.
 dirsToProcess = dir(PATH_FOLDER_TO_PROCESS);
@@ -40,6 +40,7 @@ seriesGpsS = seriesGpsS(~cellfun('isempty',seriesGpsS));
 seriesColors = colormap(parula);
 [numSeriesColors, ~] = size(seriesColors);
 indicesColorToUse = randi([1 numSeriesColors],1,length(seriesGpsS));
+close all;
 hFig = figure; hold on;
 markerSize = 10;
 for idxSeries = 1:length(seriesGpsS)

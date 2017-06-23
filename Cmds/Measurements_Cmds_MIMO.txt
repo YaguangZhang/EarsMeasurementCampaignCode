@@ -1,8 +1,8 @@
 # Assumed home position: X at center & Z at top
-XVE18
+XVE16
 XAC40
 XDE40
-ZVE18
+ZVE16
 ZAC40
 ZDE40
 XSP0
