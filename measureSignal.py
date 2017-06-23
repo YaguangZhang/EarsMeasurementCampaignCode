@@ -39,7 +39,7 @@ from threading import Timer
 from lib import gpsdo
 curFileDir = os.path.dirname(os.path.realpath(__file__))
 MAX_RX_GAIN = 76
-startRxGain = 76
+startRxGain = 73
 FLAG_TRY_TO_LOCK_GPSDO = False
 # Make sure it's not out of range
 if startRxGain > MAX_RX_GAIN:
