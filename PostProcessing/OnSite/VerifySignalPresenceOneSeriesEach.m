@@ -1,19 +1,19 @@
-% VERIFYSIGNALPRESENCEALLFORONESERIES Plot all the signal captured by USRP
-% B200 for one series in the EARS measurement campaign.
+% VERIFYSIGNALPRESENCEONESERIESEACH Plot the signal captured by USRP B200
+% in the EARS measurement campaign, one measurement from each series.
 %
 % Yaguang Zhang, Purdue, 06/18/2017
 
 %% Load data and set the current Matlab directory.
 cd(fileparts(mfilename('fullpath')));
 addpath(fullfile(pwd));
-addpath(fullfile(pwd, '..', 'gnuradio-tools', 'matlab'));
-addpath(genpath(fullfile(pwd, 'lib')));
+cd('..'); setPath;
 
-PATH_FOLDER_TO_PROCESS = fullfile(pwd, '..', '..', 'Data', '20170617_LargeScale');
+PATH_FOLDER_TO_PROCESS = fullfile(pwd, '..', '..', '..', 'Data', ...
+    '20170620_LargeScale'); %'20170619_LargeScale'); %
 % Use this to limit what subfolders will be processed.
-subfolderPattern = '^Series_([1])$'; % '^Series_(\d+)$';
+subfolderPattern = '^Series_(\d+)$';
 
-%% For each folder, read in all the .out files.
+%% For each folder, read in only the .out files for the first measurement.
 dirsToProcess = dir(PATH_FOLDER_TO_PROCESS);
 seriesSignalFiltered = cell(length(dirsToProcess),1);
 seriesSignal = cell(length(dirsToProcess),1);
@@ -29,12 +29,12 @@ for idxDir = 1:length(dirsToProcess)
             % Load the signal samples.
             seriesSignalFiltered{idxDir} = arrayfun(...
                 @(log) read_complex_binary(log.name), ...
-                signalFilteredLogs, ...
+                signalFilteredLogs(1), ...
                 'UniformOutput', false);
             seriesSignal{idxDir} = arrayfun(...
                 @(log) read_complex_binary(...
                 regexprep(log.name, '_filtered','')),...
-                signalFilteredLogs, ...
+                signalFilteredLogs(1), ...
                 'UniformOutput', false);
         end
     end
@@ -49,9 +49,10 @@ seriesSignal = seriesSignal(~cellfun('isempty',seriesSignal));
 % We will try to find the "tallest" bump.
 numPreSamples = 200;
 numPostSamples = 2000;
-MAX_NUM_FIGS = 10;
+MAX_NUM_FIGS = 30;
+
+numFigs = 0;
 for idxSeries = 1:length(seriesSignal)
-    numFigs = 0;
     for idxSignalFiles = 1:length(seriesSignal{idxSeries})
         figureSupTitle = ['Series ', num2str(idxSeries), ...
             ' - ', num2str(idxSignalFiles)];

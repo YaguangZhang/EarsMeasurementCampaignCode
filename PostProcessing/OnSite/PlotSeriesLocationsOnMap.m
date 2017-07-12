@@ -10,9 +10,9 @@
 %% Load data and set the current Matlab directory.
 cd(fileparts(mfilename('fullpath')));
 addpath(fullfile(pwd));
-addpath(genpath(fullfile(pwd, 'lib')));
+cd('..'); setPath;
 
-PATH_FOLDER_TO_PROCESS = fullfile(pwd, '..', '..', 'Data', ...
+PATH_FOLDER_TO_PROCESS = fullfile(pwd, '..', '..', '..', 'Data', ...
     '20170621_MISO'); %'20170617_LargeScale');
 
 %% For each folder, read in all the GPS log files.
