@@ -7,6 +7,12 @@
 *.pyc
 # Matlab temp files
 *.m~
+*.asv
+# Latex temp files
+*.aux
+*.bbl
+*.blg
+*.gz
 
 # ----------------
 # macOS.gitignore

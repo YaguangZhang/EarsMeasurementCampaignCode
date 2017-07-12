@@ -21,7 +21,7 @@ ABS_PATH_TO_EARS_SHARED_FOLDER = ...
     '/Users/zhan1472/Google Drive/Annapolis Measurement Campaign';
 
 % Flags to enable coresponding plot functions.
-FLAG_PLOT_GPS_FOR_EACH_DAY = false;
+FLAG_PLOT_GPS_FOR_EACH_DAY = true;
 FLAG_PLOT_FIRST_SEVERAL_MEAS_PER_SERIES = true;
 
 % Configure other paths accordingly.
@@ -72,6 +72,12 @@ for idxPar = 1:length(allSeriesParentDirs)
     end
     allSeriesDirs{idxPar} = curSeriesDirs;
 end
+disp('    Saving the results...')
+% Note that the exact paths to the folders may change depending on the
+% manchine and its operating system, so only the folder names should be
+% used.
+save(fullfile(ABS_PATH_TO_SAVE_PLOTS, 'plotInfo.mat'), ...
+    'allSeriesParentDirs', 'allSeriesDirs');
 disp('    Done!')
 
 %% Google Maps for Each Parent Folder
@@ -193,7 +199,8 @@ if FLAG_PLOT_FIRST_SEVERAL_MEAS_PER_SERIES
                     % Ignore measurements that will not be used.
                     signalFilteredLogs = signalFilteredLogs(1:min( ...
                         [numMeasToPlotPerSeries; length(signalFilteredLogs)]));
-                    % Load the signal samples. The integer countSam is to limit the number samples to load.
+                    % Load the signal samples. The integer countSam is to
+                    % limit the number samples to load.
                     countSam = 1.04*(10^6); % ~ 1s of the signal.
                     seriesSignalFiltered = arrayfun(...
                         @(log) read_complex_binary(log.name, countSam), ...
@@ -209,8 +216,8 @@ if FLAG_PLOT_FIRST_SEVERAL_MEAS_PER_SERIES
                             ' series parent folder does not have enough valid measuremnts loaded!']);
                     end
                     if ~isempty(seriesSignalFiltered)
-                        % Plot the signals. We will try to find the "tallest" bump for each
-                        % measurement.
+                        % Plot the signals. We will try to find the
+                        % "tallest" bump for each measurement.
                         numPreSamples = 200;
                         numPostSamples = 2000;
                         
@@ -234,7 +241,7 @@ if FLAG_PLOT_FIRST_SEVERAL_MEAS_PER_SERIES
                             saveas(hFigSigFiltered, [pathFileToSave, '_filtered.fig']);
                             saveas(hFigSigFiltered, [pathFileToSave, '_filtered.png']);
                             saveas(hFigSig, [pathFileToSave, '.fig']);
-                            saveas(hFigSig, [pathFileToSave, '.png']);                            
+                            saveas(hFigSig, [pathFileToSave, '.png']);
                         end
                     end
                 end
