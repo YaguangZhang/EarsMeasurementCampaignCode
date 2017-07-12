@@ -176,10 +176,11 @@ if FLAG_PLOT_FIRST_SEVERAL_MEAS_PER_SERIES
         % Use this to limit what subfolders will be processed.
         subfolderPattern = '^Series_(\d+)$';
         
-        % For each folder, read in all the .out files.
+        % For each folder, read in all the .out files needed. To save
+        % memory, we will generate plots for each series, one by one.
         dirsToProcess = dir(PATH_FOLDER_TO_PROCESS);
-        seriesSignalFiltered = cell(length(dirsToProcess),1);
-        seriesSignal = cell(length(dirsToProcess),1);
+        numSeriesInParDir = length(rdir(fullfile(PATH_FOLDER_TO_PROCESS, '*'), ...
+            'regexp(name, ''(Series_\d+$)'')'));
         for idxDir = 1:length(dirsToProcess)
             if dirsToProcess(idxDir).isdir
                 % Check the folder's name.
@@ -192,54 +193,51 @@ if FLAG_PLOT_FIRST_SEVERAL_MEAS_PER_SERIES
                     % Ignore measurements that will not be used.
                     signalFilteredLogs = signalFilteredLogs(1:min( ...
                         [numMeasToPlotPerSeries; length(signalFilteredLogs)]));
-                    % Load the signal samples.
-                    seriesSignalFiltered{idxDir} = arrayfun(...
-                        @(log) read_complex_binary(log.name), ...
+                    % Load the signal samples. The integer countSam is to limit the number samples to load.
+                    countSam = 1.04*(10^6); % ~ 1s of the signal.
+                    seriesSignalFiltered = arrayfun(...
+                        @(log) read_complex_binary(log.name, countSam), ...
                         signalFilteredLogs, ...
                         'UniformOutput', false);
-                    seriesSignal{idxDir} = arrayfun(...
+                    seriesSignal = arrayfun(...
                         @(log) read_complex_binary(...
-                        regexprep(log.name, '_filtered','')),...
+                        regexprep(log.name, '_filtered',''), countSam),...
                         signalFilteredLogs, ...
                         'UniformOutput', false);
-                    if (length(seriesSignal{idxDir})<numMeasToPlotPerSeries)
+                    if (length(seriesSignal)<numMeasToPlotPerSeries)
                         warning(['#', num2str(idxPar), ...
                             ' series parent folder does not have enough valid measuremnts loaded!']);
                     end
+                    if ~isempty(seriesSignalFiltered)
+                        % Plot the signals. We will try to find the "tallest" bump for each
+                        % measurement.
+                        numPreSamples = 200;
+                        numPostSamples = 2000;
+                        
+                        disp(['Generating plots for series ', num2str(idxSeries), '/', ...
+                            num2str(numSeriesInParDir), '...'])
+                        for idxSignalFiles = 1:length(seriesSignal)
+                            close all;
+                            [~, seriesParentDirName] = fileparts(allSeriesParentDirs(idxPar).name);
+                            figureSupTitle = [seriesParentDirName, ': Series ', num2str(idxSeries), ...
+                                ' - ', num2str(idxSignalFiles)];
+                            hFigSigFiltered = plotOnePresentSignal(...
+                                seriesSignalFiltered{idxSignalFiles}, ...
+                                numPreSamples, numPostSamples, [figureSupTitle, ' (Filtered)']);
+                            hFigSig = plotOnePresentSignal(...
+                                seriesSignal{idxSignalFiles}, ...
+                                numPreSamples, numPostSamples, figureSupTitle);
+                            % Save the plots.
+                            pathFileToSave = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
+                                [seriesParentDirName, '_oneSigPerMeas_series_', ...
+                                num2str(idxSeries), '_meas_', num2str(idxSignalFiles)]);
+                            saveas(hFigSigFiltered, [pathFileToSave, '_filtered.fig']);
+                            saveas(hFigSigFiltered, [pathFileToSave, '_filtered.png']);
+                            saveas(hFigSig, [pathFileToSave, '.fig']);
+                            saveas(hFigSig, [pathFileToSave, '.png']);                            
+                        end
+                    end
                 end
-            end
-        end
-        % Remove empty cells for the series.
-        seriesSignalFiltered = seriesSignalFiltered(...
-            ~cellfun('isempty',seriesSignalFiltered));
-        seriesSignal = seriesSignal(~cellfun('isempty',seriesSignal));
-        
-        % Plot the signals. We will try to find the "tallest" bump for each
-        % measurement.
-        numPreSamples = 200;
-        numPostSamples = 2000;
-        for idxSeries = 1:length(seriesSignal)
-            disp(['Generating plots for series ', num2str(idxSeries), '/', ...
-                num2str(length(seriesSignal)), '...'])
-            for idxSignalFiles = 1:length(seriesSignal{idxSeries})
-                close all;
-                [~, seriesParentDirName] = fileparts(allSeriesParentDirs(idxPar).name);
-                figureSupTitle = [seriesParentDirName, ': Series ', num2str(idxSeries), ...
-                    ' - ', num2str(idxSignalFiles)];
-                hFigSigFiltered = plotOnePresentSignal(...
-                    seriesSignalFiltered{idxSeries}{idxSignalFiles}, ...
-                    numPreSamples, numPostSamples, [figureSupTitle, ' (Filtered)']);
-                hFigSig = plotOnePresentSignal(...
-                    seriesSignal{idxSeries}{idxSignalFiles}, ...
-                    numPreSamples, numPostSamples, [figureSupTitle]);
-                % Save the plots.
-                pathFileToSave = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
-                    [seriesParentDirName, '_oneSigPerMeas_series_', ...
-                    num2str(idxSeries), '_meas_', num2str(idxSignalFiles)]);
-                saveas(hFigSigFiltered, [pathFileToSave, '_filtered.fig']);
-                saveas(hFigSigFiltered, [pathFileToSave, '_filtered.png']);
-                saveas(hFigSig, [pathFileToSave, '.fig']);
-                saveas(hFigSig, [pathFileToSave, '.png']);
             end
         end
     end

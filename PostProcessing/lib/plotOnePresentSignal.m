@@ -1,5 +1,5 @@
 function [ hFig ] = plotOnePresentSignal( signal, ...
-    numPreSamples, numPostSamples, figureName )
+    numPreSamples, numPostSamples, figureName)
 %PLOTONEPRESENTSIGNAL Plot the tallest bump of the signal.
 %
 % Inputs:
@@ -10,6 +10,8 @@ function [ hFig ] = plotOnePresentSignal( signal, ...
 %     numPreSamples and numPostSamples. The samples before and after the
 %     first tallest signal sample found will be plotted accordingly if
 %     there are enough samples available.
+%   - figureName
+%     Optional. A string to specify the figure's name. 
 %
 % Yaguang Zhang, Purdue, 06/18/2017
 
