@@ -14,10 +14,14 @@ clear; clc; close all;
 % The absolute path to the shared Google Drive folder "Annapolis
 % Measurement Campaign". Please make sure it is correct for the machine
 % which will run this script.
-ABS_PATH_TO_EARS_SHARED_FOLDER = '\\LEMMA\Google Drive\Annapolis Measurement Campaign';
+%     On Mac Lemma: '/Users/zhan1472/Google Drive/Annapolis Measurement
+%      Campaign';
+%  On Windows Dell: '\\LEMMA\Google Drive\Annapolis Measurement Campaign';
+ABS_PATH_TO_EARS_SHARED_FOLDER = ...
+    '/Users/zhan1472/Google Drive/Annapolis Measurement Campaign';
 
 % Flags to enable coresponding plot functions.
-FLAG_PLOT_GPS_FOR_EACH_DAY = true;
+FLAG_PLOT_GPS_FOR_EACH_DAY = false;
 FLAG_PLOT_FIRST_SEVERAL_MEAS_PER_SERIES = true;
 
 % Configure other paths accordingly.
@@ -36,6 +40,9 @@ disp(' ---------- ')
 disp('  genPlots')
 disp(' ---------- ')
 
+% Disable the tex interpreter in figures.
+set(0,'DefaultTextInterpreter','none');
+
 % Add libs to current path.
 cd(fileparts(mfilename('fullpath')));
 addpath(fullfile(pwd));
@@ -49,7 +56,7 @@ end
 % Find all the parent directories for "Series_xx" data folders using regex.
 disp(' ')
 disp('    Searching for "Series" data folders...')
-allSeriesParentDirs = rdir([ABS_PATH_TO_DATA, '\**\*'], ...
+allSeriesParentDirs = rdir(fullfile(ABS_PATH_TO_DATA, '**', '*'), ...
     'regexp(name, ''(_LargeScale$)|(_SIMO$)|(_Conti$)'')');
 % Also locate all the "Series_xx" data folders for each parent directory.
 allSeriesDirs = cell(length(allSeriesParentDirs),1);
@@ -57,7 +64,7 @@ for idxPar = 1:length(allSeriesParentDirs)
     assert(allSeriesParentDirs(idxPar).isdir, ...
         ['#', num2str(idxPar), ' series parent dir should be a folder!']);
     
-    curSeriesDirs = rdir([allSeriesParentDirs(idxPar).name, '\**\*'], ...
+    curSeriesDirs = rdir(fullfile(allSeriesParentDirs(idxPar).name, '**', '*'), ...
         'regexp(name, ''(Series_\d+$)'')');
     if(isempty(curSeriesDirs))
         warning(['#', num2str(idxPar), ...
@@ -68,8 +75,12 @@ end
 disp('    Done!')
 
 %% Google Maps for Each Parent Folder
+
 if FLAG_PLOT_GPS_FOR_EACH_DAY
+    disp(' ')
+    disp('  => Plotting GPS samples on Google map...')
     for idxPar = 1:length(allSeriesParentDirs)
+        disp([num2str(idxPar), '/', num2str(length(allSeriesParentDirs))])
         PATH_FOLDER_TO_PROCESS = allSeriesParentDirs(idxPar).name;
         
         % For each folder, read in all the GPS log files.
@@ -137,23 +148,30 @@ if FLAG_PLOT_GPS_FOR_EACH_DAY
         hold off;
         if exist('hUnLocked', 'var')
             legend([hLocked, hUnLocked], 'Locked','Unlocked');
-        elseif exist('Locked', 'var')
+        elseif exist('hLocked', 'var')
             legend([hLocked], 'Locked');
         end
+        clear hLocked hUnLocked;
+        [~, seriesParentDirName] = fileparts(allSeriesParentDirs(idxPar).name);
+        title(seriesParentDirName, 'Interpreter', 'none');
         
         % Save the plot.
-        [~, seriesParentDirName] = fileparts(allSeriesParentDirs(idxPar).name);
         pathFileToSave = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
             [seriesParentDirName, '_gpsSamplesOnMap']);
         saveas(hFigGpsOnMap, [pathFileToSave, '.fig']);
         saveas(hFigGpsOnMap, [pathFileToSave, '.png']);
     end
+    disp('     Done!')
 end
 
 %% Verify Signal Present for the First numMeasToPlotPerSeries Measurements
 
 if FLAG_PLOT_FIRST_SEVERAL_MEAS_PER_SERIES
+    disp(' ')
+    disp('  => Plotting the first estimated signal for a few measurement on each site...')
     for idxPar = 1:length(allSeriesParentDirs)
+        disp(['Loading data for parent dir ', num2str(idxPar), '/', ...
+            num2str(length(allSeriesParentDirs)), '...'])
         PATH_FOLDER_TO_PROCESS = allSeriesParentDirs(idxPar).name;
         % Use this to limit what subfolders will be processed.
         subfolderPattern = '^Series_(\d+)$';
@@ -184,38 +202,40 @@ if FLAG_PLOT_FIRST_SEVERAL_MEAS_PER_SERIES
                         regexprep(log.name, '_filtered','')),...
                         signalFilteredLogs, ...
                         'UniformOutput', false);
+                    if (length(seriesSignal{idxDir})<numMeasToPlotPerSeries)
+                        warning(['#', num2str(idxPar), ...
+                            ' series parent folder does not have enough valid measuremnts loaded!']);
+                    end
                 end
             end
         end
-        % Remove empty cells.
+        % Remove empty cells for the series.
         seriesSignalFiltered = seriesSignalFiltered(...
             ~cellfun('isempty',seriesSignalFiltered));
         seriesSignal = seriesSignal(~cellfun('isempty',seriesSignal));
-        
-        if (length(seriesSignal)<numMeasToPlotPerSeries)
-            warning(['#', num2str(idxPar), ...
-                ' series parent folder does not have enough valid measuremnts loaded!']);
-        end
         
         % Plot the signals. We will try to find the "tallest" bump for each
         % measurement.
         numPreSamples = 200;
         numPostSamples = 2000;
         for idxSeries = 1:length(seriesSignal)
+            disp(['Generating plots for series ', num2str(idxSeries), '/', ...
+                num2str(length(seriesSignal)), '...'])
             for idxSignalFiles = 1:length(seriesSignal{idxSeries})
                 close all;
-                figureSupTitle = ['Series ', num2str(idxSeries), ...
+                [~, seriesParentDirName] = fileparts(allSeriesParentDirs(idxPar).name);
+                figureSupTitle = [seriesParentDirName, ': Series ', num2str(idxSeries), ...
                     ' - ', num2str(idxSignalFiles)];
                 hFigSigFiltered = plotOnePresentSignal(...
                     seriesSignalFiltered{idxSeries}{idxSignalFiles}, ...
-                    numPreSamples, numPostSamples, [figureSupTitle, '(Filtered)']);
+                    numPreSamples, numPostSamples, [figureSupTitle, ' (Filtered)']);
                 hFigSig = plotOnePresentSignal(...
                     seriesSignal{idxSeries}{idxSignalFiles}, ...
                     numPreSamples, numPostSamples, [figureSupTitle]);
                 % Save the plots.
-                [~, seriesParentDirName] = fileparts(allSeriesParentDirs(idxPar).name);
                 pathFileToSave = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
-                    [seriesParentDirName, '_oneSigPerMeas']);
+                    [seriesParentDirName, '_oneSigPerMeas_series_', ...
+                    num2str(idxSeries), '_meas_', num2str(idxSignalFiles)]);
                 saveas(hFigSigFiltered, [pathFileToSave, '_filtered.fig']);
                 saveas(hFigSigFiltered, [pathFileToSave, '_filtered.png']);
                 saveas(hFigSig, [pathFileToSave, '.fig']);
@@ -223,5 +243,6 @@ if FLAG_PLOT_FIRST_SEVERAL_MEAS_PER_SERIES
             end
         end
     end
+    disp('     Done!')
 end
 % EOF

@@ -31,9 +31,9 @@ if(maxIdxToPlot>length(signal))
 end
 
 if nargin>3
-    figure('Name',figureName);
+    hFig = figure('Name',figureName);
 else
-    figure;
+    hFig = figure;
 end
 subplot(3,1,1); hold on;
 hR = plot(signalReal(minIdxToPlot:maxIdxToPlot), 'b-');

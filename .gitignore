@@ -5,6 +5,8 @@
 *.log
 # Compiled Python files
 *.pyc
+# Matlab temp files
+*.m~
 
 # ----------------
 # macOS.gitignore
