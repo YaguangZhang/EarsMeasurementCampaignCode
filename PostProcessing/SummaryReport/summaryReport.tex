@@ -26,6 +26,8 @@
 \usepackage{graphicx} % Required for the inclusion of images
 \usepackage{natbib} % Required to change bibliography style to APA
 \usepackage{amsmath} % Required for some math elements 
+\usepackage{listings} % For including .txt log files
+\usepackage{morefloats} % Allow more floats
 
 \setlength\parindent{0pt} % Removes all indentation from paragraphs
 
@@ -39,7 +41,7 @@
 
 \title{EARS Measurement Campaign Summary Report} % Title
 
-%\author{John \textsc{Smith}} % Author name
+\author{Yaguang \textsc{Zhang}} % Author name
 
 \date{\today} % Date for the report
 
@@ -63,13 +65,24 @@ Instructor: & Professor Smith % Instructor/supervisor
 % Abstract text
 % \end{abstract}
 
+	
+The plots below are organized by date and measurement type. 
+
 %----------------------------------------------------------------------------------------
-%	SECTION 1
+%	ONE SECTION PER PAR DIR
 %----------------------------------------------------------------------------------------
 
-\section{ }
+\input{photosAndPlots.tex}
 
+%----------------------------------------------------------------------------------------
+%	readme.mk
+%----------------------------------------------------------------------------------------
 
+\section{About the Shared Google Drive Folder}
+
+The readme.mk file:
+
+\lstinputlisting[basicstyle=\ttfamily\small, breaklines]{../../../readme.md}
 
 %----------------------------------------------------------------------------------------
 %	BIBLIOGRAPHY

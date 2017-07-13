@@ -13,6 +13,8 @@
 *.bbl
 *.blg
 *.gz
+# PDF summary report
+summaryReport.pdf
 
 # ----------------
 # macOS.gitignore
