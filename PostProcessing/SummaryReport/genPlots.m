@@ -22,7 +22,7 @@ ABS_PATH_TO_EARS_SHARED_FOLDER = ...
 
 % Flags to enable coresponding plot functions.
 FLAG_PLOT_GPS_FOR_EACH_DAY = true;
-FLAG_PLOT_FIRST_SEVERAL_MEAS_PER_SERIES = true;
+FLAG_PLOT_FIRST_SEVERAL_MEAS_PER_SERIES = false;
 
 % Configure other paths accordingly.
 ABS_PATH_TO_DATA = fullfile(ABS_PATH_TO_EARS_SHARED_FOLDER, 'Data');
@@ -56,6 +56,15 @@ end
 % Find all the parent directories for "Series_xx" data folders using regex.
 disp(' ')
 disp('    Searching for "Series" data folders...')
+
+% Try loading the information for the samples first.
+pathToPlotInfo = fullfile(ABS_PATH_TO_SAVE_PLOTS, 'plotInfo.mat');
+if exist(pathToPlotInfo, 'file')
+    % The data have been processed before and the plotInfo.mat file has
+    % been found. Load that to save time.
+    load(pathToPlotInfo);
+else
+% Need to actually scan the folder and find the sample folders.    
 allSeriesParentDirs = rdir(fullfile(ABS_PATH_TO_DATA, '**', '*'), ...
     'regexp(name, ''(_LargeScale$)|(_SIMO$)|(_Conti$)'')');
 % Also locate all the "Series_xx" data folders for each parent directory.
@@ -76,13 +85,17 @@ disp('    Saving the results...')
 % Note that the exact paths to the folders may change depending on the
 % manchine and its operating system, so only the folder names should be
 % used.
-save(fullfile(ABS_PATH_TO_SAVE_PLOTS, 'plotInfo.mat'), ...
+save(pathToPlotInfo, ...
     'allSeriesParentDirs', 'allSeriesDirs');
+end
 disp('    Done!')
 
 %% Google Maps for Each Parent Folder
 
 if FLAG_PLOT_GPS_FOR_EACH_DAY
+    TX_LAT = 38.983899;
+    TX_LON = -76.486682;
+    
     disp(' ')
     disp('  => Plotting GPS samples on Google map...')
     for idxPar = 1:length(allSeriesParentDirs)
@@ -117,7 +130,12 @@ if FLAG_PLOT_GPS_FOR_EACH_DAY
         close all;
         hFigGpsOnMap = figure; hold on;
         markerSize = 10;
+        % Plot Tx.
+        hTx = plot(TX_LON, TX_LAT, 'r*', 'MarkerSize', markerSize);
         for idxSeries = 1:length(seriesGpsS)
+            % Keep a record of the locked samples.
+            lockedLats = [];
+            lockedLons = [];
             colorToUse = seriesColors(indicesColorToUse(idxSeries),:);
             for idxGpsS = 1:length(seriesGpsS{idxSeries})
                 gpggaStr = seriesGpsS{idxSeries}(idxGpsS).gpsLocation;
@@ -139,6 +157,8 @@ if FLAG_PLOT_GPS_FOR_EACH_DAY
                         if isvalid(hLockedNew)
                             hLocked = hLockedNew;
                         end
+                        lockedLats(end+1) = gpsLoc.latitude;
+                        lockedLons(end+1) = gpsLoc.longitude;
                     else
                         % Not locked.
                         hUnLockedNew = plot(gpsLoc.longitude, gpsLoc.latitude, ...
@@ -149,13 +169,28 @@ if FLAG_PLOT_GPS_FOR_EACH_DAY
                     end
                 end
             end
-        end
+            if ~isempty(lockedLats)
+                % Plot the distance from the GPS cluster center (median
+                % locked lon, median locked lat) to the Tx.
+                latMedian = median(lockedLats);
+                lonMedian = median(lockedLons);
+                
+                % Link the cluster center with the Tx.
+                plot([lonMedian, TX_LON], [latMedian, TX_LAT], 'r-');
+                
+                % Calculate the distance in meters.
+                distToTx = 1000* ...
+                    lldistkm([latMedian, lonMedian],[TX_LAT, TX_LON]);
+                % Label it on the plot, too.
+                text(lonMedian, latMedian, [num2str(distToTx), 'm']);
+            end
+        end        
         plot_google_map('MapType', 'satellite');
         hold off;
         if exist('hUnLocked', 'var')
-            legend([hLocked, hUnLocked], 'Locked','Unlocked');
+            legend([hTx, hLocked, hUnLocked], 'Tx', 'Locked','Unlocked');
         elseif exist('hLocked', 'var')
-            legend([hLocked], 'Locked');
+            legend([hTx, hLocked], 'Tx', 'Locked');
         end
         clear hLocked hUnLocked;
         [~, seriesParentDirName] = fileparts(allSeriesParentDirs(idxPar).name);
