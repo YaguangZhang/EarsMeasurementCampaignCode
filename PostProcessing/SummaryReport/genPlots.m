@@ -55,38 +55,39 @@ end
 
 % Find all the parent directories for "Series_xx" data folders using regex.
 disp(' ')
-disp('    Searching for "Series" data folders...')
 
 % Try loading the information for the samples first.
 pathToPlotInfo = fullfile(ABS_PATH_TO_SAVE_PLOTS, 'plotInfo.mat');
 if exist(pathToPlotInfo, 'file')
     % The data have been processed before and the plotInfo.mat file has
     % been found. Load that to save time.
+    disp('    Found plotInfo.Mat; Loading the sample info in it...')
     load(pathToPlotInfo);
 else
-% Need to actually scan the folder and find the sample folders.    
-allSeriesParentDirs = rdir(fullfile(ABS_PATH_TO_DATA, '**', '*'), ...
-    'regexp(name, ''(_LargeScale$)|(_SIMO$)|(_Conti$)'')');
-% Also locate all the "Series_xx" data folders for each parent directory.
-allSeriesDirs = cell(length(allSeriesParentDirs),1);
-for idxPar = 1:length(allSeriesParentDirs)
-    assert(allSeriesParentDirs(idxPar).isdir, ...
-        ['#', num2str(idxPar), ' series parent dir should be a folder!']);
-    
-    curSeriesDirs = rdir(fullfile(allSeriesParentDirs(idxPar).name, '**', '*'), ...
-        'regexp(name, ''(Series_\d+$)'')');
-    if(isempty(curSeriesDirs))
-        warning(['#', num2str(idxPar), ...
-            ' series parent dir does not have any series subfolders!']);
+    disp('    No plotInfo.Mat found; Searching for "Series" data folders...')
+    % Need to actually scan the folder and find the sample folders.
+    allSeriesParentDirs = rdir(fullfile(ABS_PATH_TO_DATA, '**', '*'), ...
+        'regexp(name, ''(_LargeScale$)|(_SIMO$)|(_Conti$)'')');
+    % Also locate all the "Series_xx" data folders for each parent directory.
+    allSeriesDirs = cell(length(allSeriesParentDirs),1);
+    for idxPar = 1:length(allSeriesParentDirs)
+        assert(allSeriesParentDirs(idxPar).isdir, ...
+            ['#', num2str(idxPar), ' series parent dir should be a folder!']);
+        
+        curSeriesDirs = rdir(fullfile(allSeriesParentDirs(idxPar).name, '**', '*'), ...
+            'regexp(name, ''(Series_\d+$)'')');
+        if(isempty(curSeriesDirs))
+            warning(['#', num2str(idxPar), ...
+                ' series parent dir does not have any series subfolders!']);
+        end
+        allSeriesDirs{idxPar} = curSeriesDirs;
     end
-    allSeriesDirs{idxPar} = curSeriesDirs;
-end
-disp('    Saving the results...')
-% Note that the exact paths to the folders may change depending on the
-% manchine and its operating system, so only the folder names should be
-% used.
-save(pathToPlotInfo, ...
-    'allSeriesParentDirs', 'allSeriesDirs');
+    disp('    Saving the results...')
+    % Note that the exact paths to the folders may change depending on the
+    % manchine and its operating system, so only the folder names should be
+    % used.
+    save(pathToPlotInfo, ...
+        'allSeriesParentDirs', 'allSeriesDirs');
 end
 disp('    Done!')
 
@@ -176,15 +177,21 @@ if FLAG_PLOT_GPS_FOR_EACH_DAY
                 lonMedian = median(lockedLons);
                 
                 % Link the cluster center with the Tx.
-                plot([lonMedian, TX_LON], [latMedian, TX_LAT], 'r-');
+                hDistLine = plot([lonMedian, TX_LON], ...
+                    [latMedian, TX_LAT], 'r-', 'LineWidth', 0.5);
+                hClusterCenter = plot(lonMedian, latMedian, 'r.');
+                % Move the distance line indicator to the bottom.
+                uistack(hDistLine, 'bottom');
                 
                 % Calculate the distance in meters.
                 distToTx = 1000* ...
                     lldistkm([latMedian, lonMedian],[TX_LAT, TX_LON]);
                 % Label it on the plot, too.
-                text(lonMedian, latMedian, [num2str(distToTx), 'm']);
+                text(lonMedian, latMedian, ...
+                    [num2str(distToTx, '%.1f'), ' m'], 'Color', 'y', ...
+                    'VerticalAlignment', 'top');
             end
-        end        
+        end
         plot_google_map('MapType', 'satellite');
         hold off;
         if exist('hUnLocked', 'var')
