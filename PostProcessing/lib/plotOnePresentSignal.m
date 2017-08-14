@@ -21,6 +21,7 @@ signalReal = real(signal);
 signalImag = imag(signal);
 
 [valueMax, ~] = max(real(signal));
+% Find the first peak that is tall enough.
 idxRefSample = find(signalReal>RATIO_VS_TALLEST.*valueMax, 1);
 
 minIdxToPlot = idxRefSample - numPreSamples;
