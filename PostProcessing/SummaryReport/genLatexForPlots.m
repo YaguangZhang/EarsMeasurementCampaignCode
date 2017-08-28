@@ -112,8 +112,12 @@ for idxPar=1:length(allSeriesParentDirs)
     
     % Illustration for sample measurements.
     fprintf(fID, '\\subsection{Plots for Sample Measurements}\n');
-    curSeriesDirs = allSeriesDirs(idxPar);
+    curSeriesDirs = allSeriesDirs{idxPar};
     for idxSeries = 1:length(curSeriesDirs)
+        partFolder = regexp(curSeriesDirs(idxSeries).name,'Data\/(201\d+_\w+)\/','tokens');
+        assert(length(partFolder)==1, 'There should be exactly 1 date & type pair as the name for the parent data folder!');
+        partFolder = partFolder{1}{1};
+        fprintf(fID, '\\subsubsection{Site label: %s}\n', replace([partFolder,'_Series_',num2str(idxSeries)], '_', '\_'));
         % Photos.
         fprintf(fID, '\\begin{figure}[ht] \\caption{Photo from the antenna}\n');
         fprintf(fID, '\\includegraphics[width=0.9\\textwidth]{%s}\\centering\\end{figure}\n', ...
@@ -123,7 +127,7 @@ for idxPar=1:length(allSeriesParentDirs)
             ['"',replace(photosSetup(idxSeries).name, '.png', ''),'"']);
         % Signals. Find the signal over time plots for this series.
         imagesSig = rdir(fullfile(ABS_PATH_TO_PLOTS, ...
-            [curParFolderName, '_oneSigPerMeas*_series_', num2str(idxSeries), '_*.png']),'',1);
+            [curParFolderName, '_oneSigPerMeas_series_', num2str(idxSeries), '_*.png']),'',1);
         for idxMea = 1:length(imagesSig)
             imgSigTitle = replace(replace(...
                 imagesSig(idxMea).name, '.png', ''), ...

@@ -17,7 +17,7 @@ clear; clc; close all;
 %  On Windows Dell: 
 %    'C:\Users\Zyglabs\Documents\MEGAsync\EARS'
 ABS_PATH_TO_EARS_SHARED_FOLDER = ...
-    '/Users/zhan1472/Google Drive/Annapolis Measurement Campaign';
+    'C:\Users\Zyglabs\Documents\MEGAsync\EARS';
 
 % Configure other paths accordingly.
 ABS_PATH_TO_CALI_DATA = fullfile(ABS_PATH_TO_EARS_SHARED_FOLDER, ...
@@ -127,7 +127,7 @@ for idxDataset = 1:numDatasets
         % Compute the complex FFT of the resulted signal.
         curCalDataThr{idxCurMeas} = signalReal+1i.*signalImag;
         powerSpectralDen = fft(curCalDataThr{idxCurMeas});
-        curCalculatedP(idxCurMeas) = trapz(abs(powerSpectralDen));
+        curCalculatedP(idxCurMeas) = trapz(abs(powerSpectralDen).^2);
     end
     calDataThresholded{idxDataset} = curCalDataThr;
     % Change to dB and remove the gain from the Gnu Radio.
@@ -141,6 +141,11 @@ disp('    Done!')
 
 disp(' ')
 disp('    Plotting...')
+
+seriesColors = colormap(parula);
+[numSeriesColors, ~] = size(seriesColors);
+indicesColorToUse = randi([1 numSeriesColors],1,numDatasets);
+        
 hFigCalibration = figure; hold on;
 for idxDataset = 1:numDatasets
     % For plotting, remove points with inf as calculated power.
@@ -148,9 +153,20 @@ for idxDataset = 1:numDatasets
     ys = calculatedPowers{idxDataset};
     xs = xs(~isinf(ys));
     ys = ys(~isinf(ys));
-    scatter(xs, ys, '*');
+    
+    colorToUse = seriesColors(indicesColorToUse(idxDataset),:);
+    scatter(xs, ys, '*', 'MarkerEdgeColor', colorToUse, ...
+        'LineWidth',1.5);
 end
-lsline;
+hLsLines = lsline;
+% % Color the lines of best fit.
+% for idxDataset = numDatasets:(-1):1
+%     colorToUse = seriesColors(indicesColorToUse(idxDataset),:);
+%     set(hLsLines(idxDataset), 'Color', colorToUse);
+% end
+xlabel('Measured Power (dB)');
+ylabel('Calculated Power (dB)');
+grid on;
 hold off;
 pathFileToSave = fullfile(ABS_PATH_TO_SAVE_PLOTS, 'Calibration');
 saveas(hFigCalibration, [pathFileToSave, '.fig']);
