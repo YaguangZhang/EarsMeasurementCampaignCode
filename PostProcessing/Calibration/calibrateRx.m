@@ -24,15 +24,13 @@ ABS_PATH_TO_CALI_DATA = fullfile(ABS_PATH_TO_EARS_SHARED_FOLDER, ...
     'Data', '20170615_Calibration');
 ABS_PATH_TO_SAVE_PLOTS = fullfile(ABS_PATH_TO_EARS_SHARED_FOLDER, ...
     'PostProcessingResults', 'Calibration');
+FLAG_USE_FILTERED_OUTPUT_FILES = true;
 
 % We have two sets of reference data, with the Gnu Radio gain being set to
 % 1dB and 76dB, respectively.
 rxGains = [1; 76]; % In dB.
 % Each set of data is stored in a folder named as "Gain_xxx".
 calDataDirNamePrefix = 'Gain_';
-
-% Gnu Radio sample rate.
-
 
 % Reference received power measured by the spectrum analyzer.
 measPowers = {[-19;-24;-29;-34;-39;-44;-49;-54;-59], ...
@@ -85,9 +83,15 @@ calData = cell(numDatasets,1);
 for idxDataset = 1:numDatasets
     curDatasetAbsPath = absPathsToCalDatasets{idxDataset};
     
-    % We will use the filtered Rx output files.
-    curCalDataLogs = rdir(curDatasetAbsPath, ...
-        'regexp(name, ''(_filtered\.out$)'')');
+    if FLAG_USE_FILTERED_OUTPUT_FILES
+        % Use the filtered (by GunRadio) Rx output files.
+        curCalDataLogs = rdir(curDatasetAbsPath, ...
+            'regexp(name, ''(_filtered\.out$)'')');
+    else
+        % Use the original output files.
+        curCalDataLogs = rdir(curDatasetAbsPath, ...
+            'regexp(name, ''(_\d+\.out$)'')');
+    end
     % Make sure the log files are sorted by name before loading.
     [~, sortedIs] = sort({curCalDataLogs.name});
     curCalDataLogs = curCalDataLogs(sortedIs);
@@ -109,30 +113,39 @@ disp('    Done!')
 disp(' ')
 disp('    Calibrating...')
 
-% Sample rate used.
+% Sample rate used for GnuRadio.
 Fs = 1.04 * 10^6;
 % Low pass filter for the PSD.
 maxFreqPassed = 46000; % In Hz.
-% Minimum valid calculated power.
-minValidCalPower = -140; % In dB.
+% Number of samples to discard at the beginning.
+numFirstSampsToDiscard = 1500;
 
-pathCalFileToSave = fullfile(ABS_PATH_TO_SAVE_PLOTS, 'Calibration');
+% % Minimum valid calculated power.
+% minValidCalPower = -140; % In dB.
+
+% Minimum valid estimated SNR.
+minValidEstSnr = 1.5;
 
 % Compute the Rx Power (in dB) for each filtered output log file. We are
 % doing the for loops again here instead of in the section above to better
 % separate the code modules.
-[calDataThresholded, ... % For debugging.
+[calDataThresholded, estimatedSnrs, ... % For debugging.
     calculatedPowers] = deal(cell(numDatasets,1));
 for idxDataset = 1:numDatasets
     curNumMeas = length(calData{idxDataset});
     curCalDataThr = cell(curNumMeas,1);
     curCalculatedP = nan(curNumMeas,1);
+    curEstimatedSnrs = nan(curNumMeas,1);
     for idxCurMeas = 1:curNumMeas
         curSeries = calData{idxDataset}{idxCurMeas};
+        % Discard the first numFirstSampsToDiscard samples.
+        curSeries = curSeries((numFirstSampsToDiscard+1):end);
         % First of all, threshold the I&Q waveforms of each signal vector
         % to eliminate corss-correlation and system noise.
-        signalReal = thresholdWaveform(real(curSeries));
-        signalImag = thresholdWaveform(imag(curSeries));
+        [signalReal, ~, hNoiseSigmaReal] = ...
+            thresholdWaveform(real(curSeries), true);
+        [signalImag, ~, hNoiseSigmaImag] = ...
+            thresholdWaveform(imag(curSeries), true);
         % Compute the complex FFT of the resulted signal; Store it in the
         % cell curCalDataThr for debugging.
         curCalDataThr{idxCurMeas} = signalReal+1i.*signalImag;
@@ -158,27 +171,51 @@ for idxDataset = 1:numDatasets
         x = [maxFreqPassed maxFreqPassed f(end) f(end)];
         y = [curAxis(3) curAxis(4) curAxis(4) curAxis(3)];
         patch(x,y,[1,1,1].*0.6,'FaceAlpha',0.3,'LineStyle','none');
+        
+        % Compute the power.
+        powerSpectralDen = P2.^2;
+        maxIdxPassed = find(f>maxFreqPassed, 1)-1;
+        maxIdxFiltered = find(f>2*maxFreqPassed, 1)-1;
+        % Discard DC component.
+        curCalculatedP(idxCurMeas) = ...
+            trapz(powerSpectralDen(2:maxIdxPassed));
+        % As the reference noise power, compute the power from
+        % maxFreqPassed to 2*maxFreqPassed.
+        powerFiltered = trapz(powerSpectralDen(...
+            (maxIdxPassed+1):maxIdxFiltered) ...
+            );
+        curEstimatedSnrs(idxCurMeas) = ...
+            curCalculatedP(idxCurMeas)/powerFiltered;
+        
+        text(maxFreqPassed, mean([curAxis(3) curAxis(4)]), ...
+            ['Estimated SNR = ', ...
+            num2str(curEstimatedSnrs(idxCurMeas), '%.2f')]);
         hold off;
         title(['Single-Sided Amplitude Spectrum P1 - Set #', ...
             num2str(idxDataset), ' Pt #', num2str(idxCurMeas)]);
         xlabel('f (Hz)'); ylabel('|P1(f)|'); axis(curAxis);
         legend([hP1, hLPF], 'P1', 'LPF'); grid on;
-        % Save the plot.
-        pathNewPsdFileToSave = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
-            ['psd-set-',num2str(idxCurMeas),'-pt-',num2str(idxCurMeas)]);
-        saveas(hPSD, [pathNewPsdFileToSave, '.fig']);
-        saveas(hPSD, [pathNewPsdFileToSave, '.png']);
         
-        % Compute the power.
-        powerSpectralDen = P2.^2;
-        maxIdxPassed = find(f>maxFreqPassed, 1)-1;
-        curCalculatedP(idxCurMeas) = ...
-            trapz(powerSpectralDen(1:maxIdxPassed));
+        % Save the plots.
+        pathNewPsdFileToSave = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
+            ['set-',num2str(idxDataset),'-pt-',num2str(idxCurMeas), '-psd']);
+        saveas(hPSD, [pathNewPsdFileToSave, '.png']);
+        pathNewCompNoiseSigmaToSave = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
+            ['set-',num2str(idxDataset),'-pt-',num2str(idxCurMeas), '-noise-sigma-']);
+        saveas(hNoiseSigmaReal, [pathNewCompNoiseSigmaToSave, 'real.png']);
+        saveas(hNoiseSigmaImag, [pathNewCompNoiseSigmaToSave, 'imag.png']);
+        %         % Also a .fig copy. saveas(hPSD, [pathNewPsdFileToSave,
+        %         '.fig']); saveas(hNoiseSigmaReal,
+        %         [pathNewCompNoiseSigmaToSave, 'real.fig']);
+        %         saveas(hNoiseSigmaImag, [pathNewCompNoiseSigmaToSave,
+        %         'imag.fig']);
+        
     end
     calDataThresholded{idxDataset} = curCalDataThr;
     % Change to dB and remove the gain from the Gnu Radio.
     calculatedPowers{idxDataset} = 10.*log(curCalculatedP)./log(10) ...
         - rxGains(idxDataset);
+    estimatedSnrs{idxDataset} = curEstimatedSnrs;
 end
 
 disp('    Done!')
@@ -222,16 +259,29 @@ for idxDataset = 1:numDatasets
     xs = measPowers{idxDataset};
     ys = calculatedPowers{idxDataset};
     
-    % For fitting, remove points with too low calculated power.
-    xsToFit = xs(ys>=minValidCalPower);
-    ysToFit = ys(ys>=minValidCalPower);
+    %     % For fitting, remove points with too low calculated power.
+    %     xsToFit = xs(ys>=minValidCalPower); ysToFit =
+    %     ys(ys>=minValidCalPower);
     
+    % For fitting, remove points with too low estimated SNR.
+    boolsPtsToFit = estimatedSnrs{idxDataset}>=minValidEstSnr;
+    xsToFit = xs(boolsPtsToFit);
+    ysToFit = ys(boolsPtsToFit);
+    
+    % Cover the unused points in the plot.
+    hIgnoredPts = plot(xs(~boolsPtsToFit),ys(~boolsPtsToFit), ...
+        'r*', 'LineWidth',1.5);
+    
+    % Linear fitting.
     lsLinePoly = polyfit(xsToFit, ysToFit, 1);
     
+    % Plot the fitted line.
     xRangeToShow = linspace(finalAxis(1),finalAxis(2));
     valuesLsLine = polyval(lsLinePoly,xRangeToShow);
-    hLsLines{idxDataset} = plot(xRangeToShow,valuesLsLine, ...
+    hLsLines{idxDataset} = ...
+        plot(xRangeToShow,valuesLsLine, ...
         'Color',colorToUse,'LineStyle', '--');
+    
     % Show the polynomial on the plot.
     if lsLinePoly(2)>0
         strPoly=['y = ',num2str(lsLinePoly(1)),'x+',num2str(lsLinePoly(2))];
@@ -240,7 +290,6 @@ for idxDataset = 1:numDatasets
     else % lsLinePoly(2)==0
         strPoly=['y = ',num2str(lsLinePoly(1)),'x'];
     end
-    
     idxMiddlePtToFit = floor(length(xsToFit)/2);
     hPolyText = text(xsToFit(idxMiddlePtToFit), ...
         ysToFit(idxMiddlePtToFit), strPoly);
@@ -248,12 +297,12 @@ for idxDataset = 1:numDatasets
     
     lsLinesPolys{idxDataset} = lsLinePoly;
 end
-plot([finalAxis(1) finalAxis(2)], [minValidCalPower minValidCalPower], ...
-    'r--');
-x = [finalAxis(1) finalAxis(1) finalAxis(2) finalAxis(2)];
-minY = -200;
-y = [minY minValidCalPower minValidCalPower minY];
-patch(x,y,[1,1,1].*0.6,'FaceAlpha',0.3,'LineStyle','none');
+% plot([finalAxis(1) finalAxis(2)], [minValidCalPower minValidCalPower],
+% ...
+%     'r--');
+% x = [finalAxis(1) finalAxis(1) finalAxis(2) finalAxis(2)]; minY = -200; y
+% = [minY minValidCalPower minValidCalPower minY];
+% patch(x,y,[1,1,1].*0.6,'FaceAlpha',0.3,'LineStyle','none');
 title('Calibration results');
 xlabel('Measured Power (dB)');
 ylabel('Calculated Power (dB)');
