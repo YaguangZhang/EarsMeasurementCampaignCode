@@ -36,6 +36,35 @@ calDataDirNamePrefix = 'Gain_';
 measPowers = {[-19;-24;-29;-34;-39;-44;-49;-54;-59], ...
     [-39.6;-44.6;-49.6;-54.6;-59.6;-64.6;-69.6]};
 
+% Set this to be true to eliminate noise (i.e. compute noise sigma) using
+% signal amplitude; Otherwise, we will eliminate the noise in the real and
+% imaginary parts of the signal separately.
+FLAG_NOISE_ELI_VIA_AMP = true;
+
+% Manually ignore some of the measurements.
+BOOLS_MEAS_TO_FIT = {[1 1 1 1 1 1 0 0 0], ...
+    [1 1 1 1 1 1 1]};
+
+% Sample rate used for GnuRadio.
+Fs = 1.04 * 10^6;
+% Low pass filter for the PSD. Tried before: 46000; 39500.
+maxFreqPassed = 30000; % In Hz.
+
+% Minimum valid calculated power.
+minValidCalPower = -inf; % In dB. Before: -140.
+
+% Minimum valid estimated SNR.
+minValidEstSnr = 0; % Before: 1.5.
+
+% Number of samples to discard at the beginning.
+numStartSampsToDiscard = 100000; % ~0.1s
+% After discarding these samples, furthermore only keep the middle part of
+% the signal for calibration.
+timeLengthAtCenterToUse = 1; % In second.
+
+% The 76dB gain dataset (set #1 needs more noise elimination).
+NUMS_SIGMA_FOR_THRESHOLD = [3.5, 3.5];
+
 %% Before Calibration
 
 disp(' ------------- ')
@@ -113,19 +142,6 @@ disp('    Done!')
 disp(' ')
 disp('    Calibrating...')
 
-% Sample rate used for GnuRadio.
-Fs = 1.04 * 10^6;
-% Low pass filter for the PSD.
-maxFreqPassed = 46000; % In Hz.
-% Number of samples to discard at the beginning.
-numFirstSampsToDiscard = 1500;
-
-% % Minimum valid calculated power.
-% minValidCalPower = -140; % In dB.
-
-% Minimum valid estimated SNR.
-minValidEstSnr = 1.5;
-
 % Compute the Rx Power (in dB) for each filtered output log file. We are
 % doing the for loops again here instead of in the section above to better
 % separate the code modules.
@@ -136,19 +152,52 @@ for idxDataset = 1:numDatasets
     curCalDataThr = cell(curNumMeas,1);
     curCalculatedP = nan(curNumMeas,1);
     curEstimatedSnrs = nan(curNumMeas,1);
+    
+    NUM_SIGMA_FOR_THRESHOLD = NUMS_SIGMA_FOR_THRESHOLD(idxDataset);
+    
     for idxCurMeas = 1:curNumMeas
         curSeries = calData{idxDataset}{idxCurMeas};
-        % Discard the first numFirstSampsToDiscard samples.
-        curSeries = curSeries((numFirstSampsToDiscard+1):end);
+        
+        % Discard the first numStartSampsToDiscard of samples.
+        curSeries = curSeries((numStartSampsToDiscard+1):end);
+        % Further more, only keep the middle part for calibration.
+        numSampsToKeep = ceil(timeLengthAtCenterToUse*Fs);
+        numSampsCurSeries = length(curSeries);
+        if numSampsToKeep > numSampsCurSeries
+            warning('There are not enough samples to keep. We will use all remaining ones.');
+        else
+            idxRangeToKeep = floor(0.5.*numSampsCurSeries ...
+                + [-1,1].*numSampsToKeep./2);
+            curSeries = curSeries(idxRangeToKeep(1):idxRangeToKeep(2));
+        end
+        
         % First of all, threshold the I&Q waveforms of each signal vector
         % to eliminate corss-correlation and system noise.
         [signalReal, ~, hNoiseSigmaReal] = ...
             thresholdWaveform(real(curSeries), true);
         [signalImag, ~, hNoiseSigmaImag] = ...
             thresholdWaveform(imag(curSeries), true);
-        % Compute the complex FFT of the resulted signal; Store it in the
-        % cell curCalDataThr for debugging.
-        curCalDataThr{idxCurMeas} = signalReal+1i.*signalImag;
+        
+        % Update: it makes more sense to eliminate pts according to the
+        % amplitude of the signal, instead of doing it separately for the
+        % real and image parts.
+        [~, boolsEliminatedPts, hNoiseSigmaAmp] = ...
+            thresholdWaveform(abs(curSeries), true);
+        curSeriesEliminated = curSeries;
+        curSeriesEliminated(boolsEliminatedPts) = 0;
+        
+        % Make sure we end up with even number of samples.
+        if mod(length(curSeriesEliminated),2)==1
+            curSeriesEliminated = curSeriesEliminated(1:(end-1));
+        end
+        
+        if FLAG_NOISE_ELI_VIA_AMP
+            curCalDataThr{idxCurMeas} = curSeriesEliminated;
+        else
+            % Compute the complex FFT of the resulted signal; Store it in
+            % the cell curCalDataThr for debugging.
+            curCalDataThr{idxCurMeas} = signalReal+1i.*signalImag;
+        end
         
         % Signal to process.
         X = curCalDataThr{idxCurMeas};
@@ -157,44 +206,66 @@ for idxDataset = 1:numDatasets
         Y = fft(X);
         % Two-sided spectrum.
         P2 = abs(Y/L);
-        % Single-sided spectrum.
-        P1 = P2(1:L/2+1);
-        P1(2:end-1) = 2*P1(2:end-1);
         % Frequency domain.
         f = Fs*(0:(L/2))/L;
+        f = [-f((end-1):-1:2), f];
+        idxDC = L/2+1;
+        % Reorder P2 to match f.
+        P2 = [P2((L/2+1):end); P2(1:(L/2))];
+        % PSD.
+        powerSpectralDen = P2.^2;
+        
         % Plot the result for debugging.
         hPSD = figure; hold on;
-        hP1 = plot(f,P1);
-        curAxis = axis; curAxis(2) = f(end);
-        hLPF = plot([maxFreqPassed, maxFreqPassed], ...
-            [curAxis(3),curAxis(4)], '-.r');
-        x = [maxFreqPassed maxFreqPassed f(end) f(end)];
-        y = [curAxis(3) curAxis(4) curAxis(4) curAxis(3)];
-        patch(x,y,[1,1,1].*0.6,'FaceAlpha',0.3,'LineStyle','none');
+        hPowerSpectralDen = plot(f,powerSpectralDen);
+        curAxis = axis; curAxis(1) = f(1); curAxis(2) = f(end);
+        if ~isinf(maxFreqPassed)
+            hLPF = plot([maxFreqPassed, -maxFreqPassed; ...
+                maxFreqPassed, -maxFreqPassed], ...
+                [curAxis(3),curAxis(3); ...
+                curAxis(4),curAxis(4)], '-.r');
+            x = [maxFreqPassed maxFreqPassed f(end) f(end)];
+            y = [curAxis(3) curAxis(4) curAxis(4) curAxis(3)];
+            patch(x,y,[1,1,1].*0.6,'FaceAlpha',0.3,'LineStyle','none');
+            x = [-maxFreqPassed -maxFreqPassed f(1) f(1)];
+            y = [curAxis(3) curAxis(4) curAxis(4) curAxis(3)];
+            patch(x,y,[1,1,1].*0.6,'FaceAlpha',0.3,'LineStyle','none');
+        end
         
         % Compute the power.
-        powerSpectralDen = P2.^2;
-        maxIdxPassed = find(f>maxFreqPassed, 1)-1;
-        maxIdxFiltered = find(f>2*maxFreqPassed, 1)-1;
-        % Discard DC component.
-        curCalculatedP(idxCurMeas) = ...
-            trapz(powerSpectralDen(2:maxIdxPassed));
+        indicesFPassed = find(abs(f)<=maxFreqPassed);
+        % Compute the power by integral. Note that we will discard the DC
+        % component here (will be passed by the LPF).
+        psdPassed = powerSpectralDen;
+        psdPassed(idxDC) = 0;
+        psdPassed = psdPassed(indicesFPassed);
+        curCalculatedP(idxCurMeas) = trapz(f(indicesFPassed), psdPassed);
+        % For the noise, we compute the power right outside of the LPF but
+        % limit the integral range to be as wide as the LPF.
+        indicesFFiltered = setdiff(find(abs(f)<=2*maxFreqPassed), ...
+            indicesFPassed);
         % As the reference noise power, compute the power from
         % maxFreqPassed to 2*maxFreqPassed.
-        powerFiltered = trapz(powerSpectralDen(...
-            (maxIdxPassed+1):maxIdxFiltered) ...
-            );
+        psdFiltered = powerSpectralDen;
+        psdFiltered(indicesFPassed) = 0;
+        psdFiltered = powerSpectralDen(indicesFFiltered);
+        powerFiltered = trapz(f(indicesFFiltered), psdFiltered);
         curEstimatedSnrs(idxCurMeas) = ...
             curCalculatedP(idxCurMeas)/powerFiltered;
         
-        text(maxFreqPassed, mean([curAxis(3) curAxis(4)]), ...
+        text(min(maxFreqPassed, 50000), mean([curAxis(3) curAxis(4)]), ...
             ['Estimated SNR = ', ...
             num2str(curEstimatedSnrs(idxCurMeas), '%.2f')]);
         hold off;
-        title(['Single-Sided Amplitude Spectrum P1 - Set #', ...
+        title(['Estimated Power Spectrum Density - Set #', ...
             num2str(idxDataset), ' Pt #', num2str(idxCurMeas)]);
-        xlabel('f (Hz)'); ylabel('|P1(f)|'); axis(curAxis);
-        legend([hP1, hLPF], 'P1', 'LPF'); grid on;
+        xlabel('f (Hz)'); ylabel('Estimated PSD (V^2/Hz)'); axis(curAxis);
+        if ~isinf(maxFreqPassed)
+            legend([hPowerSpectralDen, hLPF(1)], 'P1', 'LPF');
+        else
+            legend(hPowerSpectralDen, 'P1');
+        end
+        grid on;
         
         % Save the plots.
         pathNewPsdFileToSave = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
@@ -202,14 +273,21 @@ for idxDataset = 1:numDatasets
         saveas(hPSD, [pathNewPsdFileToSave, '.png']);
         pathNewCompNoiseSigmaToSave = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
             ['set-',num2str(idxDataset),'-pt-',num2str(idxCurMeas), '-noise-sigma-']);
-        saveas(hNoiseSigmaReal, [pathNewCompNoiseSigmaToSave, 'real.png']);
-        saveas(hNoiseSigmaImag, [pathNewCompNoiseSigmaToSave, 'imag.png']);
-        %         % Also a .fig copy. saveas(hPSD, [pathNewPsdFileToSave,
-        %         '.fig']); saveas(hNoiseSigmaReal,
-        %         [pathNewCompNoiseSigmaToSave, 'real.fig']);
-        %         saveas(hNoiseSigmaImag, [pathNewCompNoiseSigmaToSave,
-        %         'imag.fig']);
+        % Also a .fig copy.
+        saveas(hPSD, [pathNewPsdFileToSave, '.fig']);
         
+        % Plot the noise elimination for the real & imaginary parts only if
+        % we use them for calculating the signal power.
+        if ~FLAG_NOISE_ELI_VIA_AMP
+            saveas(hNoiseSigmaReal, [pathNewCompNoiseSigmaToSave, 'real.png']);
+            saveas(hNoiseSigmaImag, [pathNewCompNoiseSigmaToSave, 'imag.png']);
+            saveas(hNoiseSigmaReal, [pathNewCompNoiseSigmaToSave, 'real.fig']);
+            saveas(hNoiseSigmaImag, [pathNewCompNoiseSigmaToSave, 'imag.fig']);
+        end
+        
+        % Always plot the amplitude noise elimination for comparsion.
+        saveas(hNoiseSigmaAmp, [pathNewCompNoiseSigmaToSave, 'amp.png']);
+        saveas(hNoiseSigmaAmp, [pathNewCompNoiseSigmaToSave, 'amp.fig']);
     end
     calDataThresholded{idxDataset} = curCalDataThr;
     % Change to dB and remove the gain from the Gnu Radio.
@@ -259,12 +337,14 @@ for idxDataset = 1:numDatasets
     xs = measPowers{idxDataset};
     ys = calculatedPowers{idxDataset};
     
-    %     % For fitting, remove points with too low calculated power.
-    %     xsToFit = xs(ys>=minValidCalPower); ysToFit =
-    %     ys(ys>=minValidCalPower);
+    % For fitting, remove points with too low calculated power.
+    xsToFit = xs(ys>=minValidCalPower);
+    ysToFit = ys(ys>=minValidCalPower);
     
     % For fitting, remove points with too low estimated SNR.
     boolsPtsToFit = estimatedSnrs{idxDataset}>=minValidEstSnr;
+    % Also get rid of measurements to use in line fitting.
+    boolsPtsToFit = boolsPtsToFit & BOOLS_MEAS_TO_FIT{idxDataset}';
     xsToFit = xs(boolsPtsToFit);
     ysToFit = ys(boolsPtsToFit);
     
@@ -297,12 +377,14 @@ for idxDataset = 1:numDatasets
     
     lsLinesPolys{idxDataset} = lsLinePoly;
 end
-% plot([finalAxis(1) finalAxis(2)], [minValidCalPower minValidCalPower],
-% ...
-%     'r--');
-% x = [finalAxis(1) finalAxis(1) finalAxis(2) finalAxis(2)]; minY = -200; y
-% = [minY minValidCalPower minValidCalPower minY];
-% patch(x,y,[1,1,1].*0.6,'FaceAlpha',0.3,'LineStyle','none');
+if ~isinf(minValidCalPower)
+    plot([finalAxis(1) finalAxis(2)], [minValidCalPower minValidCalPower], ...
+        'r--');
+    x = [finalAxis(1) finalAxis(1) finalAxis(2) finalAxis(2)];
+    minY = -200;
+    y = [minY minValidCalPower minValidCalPower minY];
+    patch(x,y,[1,1,1].*0.6,'FaceAlpha',0.3,'LineStyle','none');
+end
 title('Calibration results');
 xlabel('Measured Power (dB)');
 ylabel('Calculated Power (dB)');
