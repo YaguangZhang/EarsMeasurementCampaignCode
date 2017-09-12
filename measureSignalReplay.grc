@@ -191,7 +191,7 @@
     </param>
     <param>
       <key>file</key>
-      <value>C:\Users\Zyglabs\Desktop\Workspace\EARS\EarsMeasurementCampaignCode\measureSignalOutput\measureSignal_1498234378.out</value>
+      <value>C:\Users\Zyglabs\Documents\MEGAsync\EARS\Data\20170615_Calibration\Gain_76\measureSignal_1497560780.out</value>
     </param>
     <param>
       <key>_coordinate</key>
@@ -498,7 +498,7 @@
     </param>
     <param>
       <key>ctrlpanel</key>
-      <value>False</value>
+      <value>True</value>
     </param>
     <param>
       <key>affinity</key>

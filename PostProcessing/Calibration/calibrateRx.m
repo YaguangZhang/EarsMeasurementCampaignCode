@@ -24,6 +24,8 @@ ABS_PATH_TO_CALI_DATA = fullfile(ABS_PATH_TO_EARS_SHARED_FOLDER, ...
     'Data', '20170615_Calibration');
 ABS_PATH_TO_SAVE_PLOTS = fullfile(ABS_PATH_TO_EARS_SHARED_FOLDER, ...
     'PostProcessingResults', 'Calibration');
+% Set this to be true to use the filtered (by GunRadio) outputs; Otherwise,
+% the original samples without post-processing will be used. 
 FLAG_USE_FILTERED_OUTPUT_FILES = true;
 
 % We have two sets of reference data, with the Gnu Radio gain being set to
@@ -65,6 +67,9 @@ timeLengthAtCenterToUse = 1; % In second.
 % The 76dB gain dataset (set #1 needs more noise elimination).
 NUMS_SIGMA_FOR_THRESHOLD = [3.5, 3.5];
 
+% Set this to true if you want figures to be generated silently.
+FLAG_GEN_PLOTS_SILENTLY = true;
+
 %% Before Calibration
 
 disp(' ------------- ')
@@ -73,6 +78,10 @@ disp(' ------------- ')
 
 % Disable the tex interpreter in figures.
 set(0,'DefaultTextInterpreter','none');
+% Hide figures if it's required.
+if FLAG_GEN_PLOTS_SILENTLY
+    set(0,'DefaultFigureVisible','off');
+end
 
 % Add libs to current path.
 cd(fileparts(mfilename('fullpath')));
@@ -156,6 +165,12 @@ for idxDataset = 1:numDatasets
     NUM_SIGMA_FOR_THRESHOLD = NUMS_SIGMA_FOR_THRESHOLD(idxDataset);
     
     for idxCurMeas = 1:curNumMeas
+        % Display the progress.
+        disp(['        Set: ', num2str(idxDataset),'/',...
+            num2str(numDatasets), ...
+            '    Measurement: ', num2str(idxCurMeas),'/',...
+            num2str(curNumMeas)]);
+        
         curSeries = calData{idxDataset}{idxCurMeas};
         
         % Discard the first numStartSampsToDiscard of samples.
@@ -261,20 +276,56 @@ for idxDataset = 1:numDatasets
             num2str(idxDataset), ' Pt #', num2str(idxCurMeas)]);
         xlabel('f (Hz)'); ylabel('Estimated PSD (V^2/Hz)'); axis(curAxis);
         if ~isinf(maxFreqPassed)
-            legend([hPowerSpectralDen, hLPF(1)], 'P1', 'LPF');
+            legend([hPowerSpectralDen, hLPF(1)], 'PSD', 'LPF');
         else
-            legend(hPowerSpectralDen, 'P1');
+            legend(hPowerSpectralDen, 'PSD');
         end
-        grid on;
+        grid minor;
         
+        % The same PSD plot in dB.
+        hPSDdB = figure; hold on;
+        powerSpectralDenIndB = 10*log10(powerSpectralDen);
+        hPowerSpectralDenIndB = plot(f, powerSpectralDenIndB);
+        curAxis = axis; curAxis(1) = f(1); curAxis(2) = f(end);
+        if ~isinf(maxFreqPassed)
+            hLPFIndB = plot([maxFreqPassed, -maxFreqPassed; ...
+                maxFreqPassed, -maxFreqPassed], ...
+                [curAxis(3),curAxis(3); ...
+                curAxis(4),curAxis(4)], '-.r');
+            x = [maxFreqPassed maxFreqPassed f(end) f(end)];
+            y = [curAxis(3) curAxis(4) curAxis(4) curAxis(3)];
+            patch(x,y,[1,1,1].*0.6,'FaceAlpha',0.3,'LineStyle','none');
+            x = [-maxFreqPassed -maxFreqPassed f(1) f(1)];
+            y = [curAxis(3) curAxis(4) curAxis(4) curAxis(3)];
+            patch(x,y,[1,1,1].*0.6,'FaceAlpha',0.3,'LineStyle','none');
+        end
+        text(min(maxFreqPassed, 50000), mean([curAxis(3) curAxis(4)]), ...
+            ['Estimated SNR = ', ...
+            num2str(curEstimatedSnrs(idxCurMeas), '%.2f')]);
+        hold off;
+        title(['Estimated Power Spectrum Density (dB) - Set #', ...
+            num2str(idxDataset), ' Pt #', num2str(idxCurMeas)]);
+        xlabel('f (Hz)'); ylabel('Estimated PSD (V^2/Hz in dB)'); 
+        axis(curAxis);
+        if ~isinf(maxFreqPassed)
+            legend([hPowerSpectralDenIndB, hLPFIndB(1)], 'PSD (dB)', 'LPF');
+        else
+            legend(hPowerSpectralDenIndB, 'PSD (dB)');
+        end
+        grid minor;
+                
         % Save the plots.
-        pathNewPsdFileToSave = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
+        pathNewPSDFileToSave = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
             ['set-',num2str(idxDataset),'-pt-',num2str(idxCurMeas), '-psd']);
-        saveas(hPSD, [pathNewPsdFileToSave, '.png']);
+        saveas(hPSD, [pathNewPSDFileToSave, '.png']);
+        pathNewPSDdBFileToSave = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
+            ['set-',num2str(idxDataset),'-pt-',num2str(idxCurMeas), '-psd-dB']);
+        saveas(hPSDdB, [pathNewPSDdBFileToSave, '.png']);
         pathNewCompNoiseSigmaToSave = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
             ['set-',num2str(idxDataset),'-pt-',num2str(idxCurMeas), '-noise-sigma-']);
         % Also a .fig copy.
-        saveas(hPSD, [pathNewPsdFileToSave, '.fig']);
+        saveas(hPSD, [pathNewPSDFileToSave, '.fig']);
+        saveas(hPSDdB, [pathNewPSDdBFileToSave, '.fig']);
         
         % Plot the noise elimination for the real & imaginary parts only if
         % we use them for calculating the signal power.
@@ -388,9 +439,13 @@ end
 title('Calibration results');
 xlabel('Measured Power (dB)');
 ylabel('Calculated Power (dB)');
-grid on; hold off;
+grid minor; hold off;
 pathCalFileToSave = fullfile(ABS_PATH_TO_SAVE_PLOTS, 'Calibration');
 saveas(hFigCalibration, [pathCalFileToSave, '.fig']);
 saveas(hFigCalibration, [pathCalFileToSave, '.png']);
 disp('    Done!')
+
+if FLAG_GEN_PLOTS_SILENTLY
+    set(0,'DefaultFigureVisible','on');
+end
 % EOF
