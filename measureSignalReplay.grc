@@ -191,7 +191,7 @@
     </param>
     <param>
       <key>file</key>
-      <value>C:\Users\Zyglabs\Documents\MEGAsync\EARS\Data\20170615_Calibration\Gain_76\measureSignal_1497560780.out</value>
+      <value>C:\Users\Zyglabs\Documents\MEGAsync\EARS\Data\20170615_Calibration\Gain_76\measureSignal_1497560874.out</value>
     </param>
     <param>
       <key>_coordinate</key>
@@ -470,7 +470,7 @@
     <key>qtgui_freq_sink_x</key>
     <param>
       <key>autoscale</key>
-      <value>False</value>
+      <value>True</value>
     </param>
     <param>
       <key>average</key>
@@ -526,7 +526,7 @@
     </param>
     <param>
       <key>grid</key>
-      <value>False</value>
+      <value>True</value>
     </param>
     <param>
       <key>id</key>
@@ -769,7 +769,7 @@
     <key>qtgui_freq_sink_x</key>
     <param>
       <key>autoscale</key>
-      <value>False</value>
+      <value>True</value>
     </param>
     <param>
       <key>average</key>
@@ -825,7 +825,7 @@
     </param>
     <param>
       <key>grid</key>
-      <value>False</value>
+      <value>True</value>
     </param>
     <param>
       <key>id</key>

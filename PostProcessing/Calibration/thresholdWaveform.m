@@ -127,16 +127,16 @@ meanNoise = mean(waveformToCons( idxRangeSampsToCons ));
 
 if all(waveform>=0)
     % The amplitude case.
-    thresholdMin = 0;
     thresholdMax = NUM_SIGMA_FOR_THRESHOLD*sigmaNoise + meanNoise;
+    boolsEliminatedPts = abs(waveform)<thresholdMax;
 else
     % The real / imaginary part case.
     thresholdMin = -NUM_SIGMA_FOR_THRESHOLD*sigmaNoise + meanNoise;
     thresholdMax = NUM_SIGMA_FOR_THRESHOLD*sigmaNoise + meanNoise;
+    boolsEliminatedPts = (waveform<thresholdMax) & (waveform>thresholdMin);
 end
 % Set everything below the threshold to 0.
 waveformThresholded = waveform;
-boolsEliminatedPts = abs(waveform)<thresholdMax;
 waveformThresholded(boolsEliminatedPts) = 0;
 
 %% Plots for debugging.

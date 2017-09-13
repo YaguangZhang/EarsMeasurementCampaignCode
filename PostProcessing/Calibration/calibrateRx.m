@@ -25,7 +25,7 @@ ABS_PATH_TO_CALI_DATA = fullfile(ABS_PATH_TO_EARS_SHARED_FOLDER, ...
 ABS_PATH_TO_SAVE_PLOTS = fullfile(ABS_PATH_TO_EARS_SHARED_FOLDER, ...
     'PostProcessingResults', 'Calibration');
 % Set this to be true to use the filtered (by GunRadio) outputs; Otherwise,
-% the original samples without post-processing will be used. 
+% the original samples without post-processing will be used.
 FLAG_USE_FILTERED_OUTPUT_FILES = true;
 
 % We have two sets of reference data, with the Gnu Radio gain being set to
@@ -62,13 +62,18 @@ minValidEstSnr = 0; % Before: 1.5.
 numStartSampsToDiscard = 100000; % ~0.1s
 % After discarding these samples, furthermore only keep the middle part of
 % the signal for calibration.
-timeLengthAtCenterToUse = 1; % In second.
+timeLengthAtCenterToUse = 3; % In second.
 
 % The 76dB gain dataset (set #1 needs more noise elimination).
 NUMS_SIGMA_FOR_THRESHOLD = [3.5, 3.5];
 
 % Set this to true if you want figures to be generated silently.
 FLAG_GEN_PLOTS_SILENTLY = true;
+
+% For any figure generated, a .pgn screen shot is always saved; Set this to
+% be true to also save a .fig version (which may dramatically slow down the
+% program).
+FLAG_SAVE_FIG_COPY = false;
 
 %% Before Calibration
 
@@ -81,6 +86,8 @@ set(0,'DefaultTextInterpreter','none');
 % Hide figures if it's required.
 if FLAG_GEN_PLOTS_SILENTLY
     set(0,'DefaultFigureVisible','off');
+else
+    set(0,'DefaultFigureVisible','on');
 end
 
 % Add libs to current path.
@@ -95,7 +102,7 @@ end
 
 % Make sure the calibration data are there.
 disp(' ')
-disp('    Checking calibration datasets...')
+disp('    Verifying calibration datasets...')
 
 numDatasets = length(rxGains);
 absPathsToCalDatasets = cell(numDatasets,1);
@@ -171,8 +178,8 @@ for idxDataset = 1:numDatasets
             '    Measurement: ', num2str(idxCurMeas),'/',...
             num2str(curNumMeas)]);
         
+        % Prepare the samples for calibration.
         curSeries = calData{idxDataset}{idxCurMeas};
-        
         % Discard the first numStartSampsToDiscard of samples.
         curSeries = curSeries((numStartSampsToDiscard+1):end);
         % Further more, only keep the middle part for calibration.
@@ -185,14 +192,47 @@ for idxDataset = 1:numDatasets
                 + [-1,1].*numSampsToKeep./2);
             curSeries = curSeries(idxRangeToKeep(1):idxRangeToKeep(2));
         end
+        % Make sure we end up with even number of samples.
+        if mod(length(curSeries),2)==1
+            curSeries = curSeries(1:(end-1));
+        end
         
-        % First of all, threshold the I&Q waveforms of each signal vector
-        % to eliminate corss-correlation and system noise.
+        % Before calibration, plot the PSD of the input samples (after
+        % range limitation but before noise elimination).
+        X0 = curSeries;
+        L0 = length(X0);
+        % Apply a L-point minimum 4-term Blackman-Harris window to the
+        % signal before fft.
+        X0Win = blackmanharris(L0).*X0;
+        % FFT results.
+        Y0 = fftshift(fft(X0));
+        Y0Win = fftshift(fft(X0Win));
+        % Frequency domain.
+        f0 = (-L0/2:L0/2-1)*(Fs/L0);
+        idxDC0 = L0/2+1;
+        % PSD.
+        powerSpectralDen0 = abs(Y0).^2/L0;
+        powerSpectralDen0Win = abs(Y0Win).^2/L0;
+        
+        % Plot the result in dB for debugging.
+        hPSDInputInDb = plotPsdInDbWithLPF(powerSpectralDen0, f0, ...
+            maxFreqPassed);
+        title({['Estimated Power Spectrum Density (dB) - Set #', ...
+            num2str(idxDataset), ' Pt #', num2str(idxCurMeas)], ...
+            'Before Noise Eliminiation'});
+        hPSDInputInDbWin = plotPsdInDbWithLPF(powerSpectralDen0Win, f0, ...
+            maxFreqPassed);
+        title({['Estimated Power Spectrum Density (dB) - Set #', ...
+            num2str(idxDataset), ' Pt #', num2str(idxCurMeas)], ...
+            'Before Noise Eliminiation, Windowed'});
+        
+        % For calibration, first of all, threshold the I&Q waveforms of
+        % each signal vector to eliminate corss-correlation and system
+        % noise.
         [signalReal, ~, hNoiseSigmaReal] = ...
             thresholdWaveform(real(curSeries), true);
         [signalImag, ~, hNoiseSigmaImag] = ...
             thresholdWaveform(imag(curSeries), true);
-        
         % Update: it makes more sense to eliminate pts according to the
         % amplitude of the signal, instead of doing it separately for the
         % real and image parts.
@@ -201,11 +241,9 @@ for idxDataset = 1:numDatasets
         curSeriesEliminated = curSeries;
         curSeriesEliminated(boolsEliminatedPts) = 0;
         
-        % Make sure we end up with even number of samples.
-        if mod(length(curSeriesEliminated),2)==1
-            curSeriesEliminated = curSeriesEliminated(1:(end-1));
-        end
-        
+        % Depending on the flag, choose to use which version of
+        % noise-eliminated signal (via real and imaginary parts separately,
+        % or via the amplitude as a whole).
         if FLAG_NOISE_ELI_VIA_AMP
             curCalDataThr{idxCurMeas} = curSeriesEliminated;
         else
@@ -214,13 +252,17 @@ for idxDataset = 1:numDatasets
             curCalDataThr{idxCurMeas} = signalReal+1i.*signalImag;
         end
         
-        % Signal to process.
+        % Signal (noise eliminiated) to process.
         X = curCalDataThr{idxCurMeas};
         L = length(X);
+        
+        % Apply a L-point minimum 4-term Blackman-Harris window to the
+        % signal before fft.
+        %  X = blackmanharris(L).*X;
         % FFT results.
         Y = fftshift(fft(X));
         % Frequency domain.
-        f = (-L/2:L/2-1)*(Fs/L); 
+        f = (-L/2:L/2-1)*(Fs/L);
         idxDC = L/2+1;
         % PSD.
         powerSpectralDen = abs(Y).^2/L;
@@ -251,13 +293,11 @@ for idxDataset = 1:numDatasets
         psdPassed = psdPassed(indicesFPassed);
         curCalculatedP(idxCurMeas) = trapz(f(indicesFPassed), psdPassed);
         % For the noise, we compute the power right outside of the LPF but
-        % limit the integral range to be as wide as the LPF.
+        % limit the integral range to be as wide as the LPF. That is, as
+        % the reference noise power, compute the power from maxFreqPassed
+        % to 2*maxFreqPassed in both the positive and negative parts.
         indicesFFiltered = setdiff(find(abs(f)<=2*maxFreqPassed), ...
             indicesFPassed);
-        % As the reference noise power, compute the power from
-        % maxFreqPassed to 2*maxFreqPassed.
-        psdFiltered = powerSpectralDen;
-        psdFiltered(indicesFPassed) = 0;
         psdFiltered = powerSpectralDen(indicesFFiltered);
         powerFiltered = trapz(f(indicesFFiltered), psdFiltered);
         curEstimatedSnrs(idxCurMeas) = ...
@@ -278,62 +318,55 @@ for idxDataset = 1:numDatasets
         grid minor;
         
         % The same PSD plot in dB.
-        hPSDdB = figure; hold on;
-        powerSpectralDenIndB = 10*log10(powerSpectralDen);
-        hPowerSpectralDenIndB = plot(f, powerSpectralDenIndB);
-        curAxis = axis; curAxis(1) = f(1); curAxis(2) = f(end);
-        if ~isinf(maxFreqPassed)
-            hLPFIndB = plot([maxFreqPassed, -maxFreqPassed; ...
-                maxFreqPassed, -maxFreqPassed], ...
-                [curAxis(3),curAxis(3); ...
-                curAxis(4),curAxis(4)], '-.r');
-            x = [maxFreqPassed maxFreqPassed f(end) f(end)];
-            y = [curAxis(3) curAxis(4) curAxis(4) curAxis(3)];
-            patch(x,y,[1,1,1].*0.6,'FaceAlpha',0.3,'LineStyle','none');
-            x = [-maxFreqPassed -maxFreqPassed f(1) f(1)];
-            y = [curAxis(3) curAxis(4) curAxis(4) curAxis(3)];
-            patch(x,y,[1,1,1].*0.6,'FaceAlpha',0.3,'LineStyle','none');
-        end
-        text(min(maxFreqPassed, 50000), mean([curAxis(3) curAxis(4)]), ...
-            ['Estimated SNR = ', ...
-            num2str(curEstimatedSnrs(idxCurMeas), '%.2f')]);
-        hold off;
+        hPSDdB = plotPsdInDbWithLPF(powerSpectralDen, f, maxFreqPassed, ...
+            curEstimatedSnrs(idxCurMeas));
         title(['Estimated Power Spectrum Density (dB) - Set #', ...
             num2str(idxDataset), ' Pt #', num2str(idxCurMeas)]);
-        xlabel('f (Hz)'); ylabel('Estimated PSD (V^2/Hz in dB)'); 
-        axis(curAxis);
-        if ~isinf(maxFreqPassed)
-            legend([hPowerSpectralDenIndB, hLPFIndB(1)], 'PSD (dB)', 'LPF');
-        else
-            legend(hPowerSpectralDenIndB, 'PSD (dB)');
-        end
-        grid minor;
-                
-        % Save the plots.
+        
+        % Paths to save the plots.
+        pathInputPSDdBFileToSave = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
+            ['set-',num2str(idxDataset),'-pt-',num2str(idxCurMeas), ...
+            '-psd-input-dB']);
+        pathWindowedInputPSDdBFileToSave = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
+            ['set-',num2str(idxDataset),'-pt-',num2str(idxCurMeas), ...
+            '-psd-input-windowed-dB']);
         pathNewPSDFileToSave = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
             ['set-',num2str(idxDataset),'-pt-',num2str(idxCurMeas), '-psd']);
-        saveas(hPSD, [pathNewPSDFileToSave, '.png']);
         pathNewPSDdBFileToSave = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
             ['set-',num2str(idxDataset),'-pt-',num2str(idxCurMeas), '-psd-dB']);
-        saveas(hPSDdB, [pathNewPSDdBFileToSave, '.png']);
         pathNewCompNoiseSigmaToSave = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
             ['set-',num2str(idxDataset),'-pt-',num2str(idxCurMeas), '-noise-sigma-']);
+        % A .png figure for easy access.
+        saveas(hPSDInputInDb, [pathInputPSDdBFileToSave, '.png']);
+        saveas(hPSDInputInDbWin, [pathWindowedInputPSDdBFileToSave, ...
+            '.png']);
+        saveas(hPSD, [pathNewPSDFileToSave, '.png']);
+        saveas(hPSDdB, [pathNewPSDdBFileToSave, '.png']);
         % Also a .fig copy.
-        saveas(hPSD, [pathNewPSDFileToSave, '.fig']);
-        saveas(hPSDdB, [pathNewPSDdBFileToSave, '.fig']);
+        if FLAG_SAVE_FIG_COPY
+            saveas(hPSDInputInDb, [pathInputPSDdBFileToSave, '.fig']);
+            saveas(hPSDInputInDbWin, [pathWindowedInputPSDdBFileToSave, ...
+            '.fig']);
+            saveas(hPSD, [pathNewPSDFileToSave, '.fig']);
+            saveas(hPSDdB, [pathNewPSDdBFileToSave, '.fig']);
+        end
         
         % Plot the noise elimination for the real & imaginary parts only if
         % we use them for calculating the signal power.
         if ~FLAG_NOISE_ELI_VIA_AMP
             saveas(hNoiseSigmaReal, [pathNewCompNoiseSigmaToSave, 'real.png']);
             saveas(hNoiseSigmaImag, [pathNewCompNoiseSigmaToSave, 'imag.png']);
-            saveas(hNoiseSigmaReal, [pathNewCompNoiseSigmaToSave, 'real.fig']);
-            saveas(hNoiseSigmaImag, [pathNewCompNoiseSigmaToSave, 'imag.fig']);
+            if FLAG_SAVE_FIG_COPY
+                saveas(hNoiseSigmaReal, [pathNewCompNoiseSigmaToSave, 'real.fig']);
+                saveas(hNoiseSigmaImag, [pathNewCompNoiseSigmaToSave, 'imag.fig']);
+            end
         end
         
         % Always plot the amplitude noise elimination for comparsion.
         saveas(hNoiseSigmaAmp, [pathNewCompNoiseSigmaToSave, 'amp.png']);
-        saveas(hNoiseSigmaAmp, [pathNewCompNoiseSigmaToSave, 'amp.fig']);
+        if FLAG_SAVE_FIG_COPY
+            saveas(hNoiseSigmaAmp, [pathNewCompNoiseSigmaToSave, 'amp.fig']);
+        end
     end
     calDataThresholded{idxDataset} = curCalDataThr;
     % Change to dB and remove the gain from the Gnu Radio.
@@ -436,8 +469,10 @@ xlabel('Measured Power (dB)');
 ylabel('Calculated Power (dB)');
 grid minor; hold off;
 pathCalFileToSave = fullfile(ABS_PATH_TO_SAVE_PLOTS, 'Calibration');
-saveas(hFigCalibration, [pathCalFileToSave, '.fig']);
 saveas(hFigCalibration, [pathCalFileToSave, '.png']);
+if FLAG_SAVE_FIG_COPY
+    saveas(hFigCalibration, [pathCalFileToSave, '.fig']);
+end
 disp('    Done!')
 
 if FLAG_GEN_PLOTS_SILENTLY
