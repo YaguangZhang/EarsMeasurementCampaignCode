@@ -218,17 +218,12 @@ for idxDataset = 1:numDatasets
         X = curCalDataThr{idxCurMeas};
         L = length(X);
         % FFT results.
-        Y = fft(X);
-        % Two-sided spectrum.
-        P2 = abs(Y/L);
+        Y = fftshift(fft(X));
         % Frequency domain.
-        f = Fs*(0:(L/2))/L;
-        f = [-f((end-1):-1:2), f];
+        f = (-L/2:L/2-1)*(Fs/L); 
         idxDC = L/2+1;
-        % Reorder P2 to match f.
-        P2 = [P2((L/2+1):end); P2(1:(L/2))];
         % PSD.
-        powerSpectralDen = P2.^2;
+        powerSpectralDen = abs(Y).^2/L;
         
         % Plot the result for debugging.
         hPSD = figure; hold on;
