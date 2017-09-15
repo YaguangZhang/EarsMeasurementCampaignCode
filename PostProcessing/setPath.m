@@ -8,7 +8,6 @@
 
 cd(fileparts(mfilename('fullpath')));
 addpath(fullfile(pwd));
-addpath(fullfile(pwd, '..', 'gnuradio-tools', 'matlab'));
 addpath(genpath(fullfile(pwd, 'lib')));
 
 % The absolute path to the shared Google Drive folder "Annapolis
