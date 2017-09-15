@@ -4,7 +4,7 @@ function [ hPsdInDb ] ...
 %PLOTPSDINDBWITHLPF Plot the PSD (in dB) for the input power spectral
 %density with frequency range f.
 %
-% AnD maxFreqPassed is the cutoff frequency of the input LPF.
+% And maxFreqPassed is the cutoff frequency of the input LPF.
 % Correspondingly, the signal frequency range that can pass will also be
 % plotted.
 %

@@ -26,7 +26,7 @@ ABS_PATH_TO_SAVE_PLOTS = fullfile(ABS_PATH_TO_EARS_SHARED_FOLDER, ...
     'PostProcessingResults', 'Calibration');
 % Set this to be true to use the filtered (by GunRadio) outputs; Otherwise,
 % the original samples without post-processing will be used.
-FLAG_USE_FILTERED_OUTPUT_FILES = true;
+FLAG_USE_FILTERED_OUTPUT_FILES = false;
 
 % We have two sets of reference data, with the Gnu Radio gain being set to
 % 1dB and 76dB, respectively.
@@ -44,7 +44,7 @@ measPowers = {[-19;-24;-29;-34;-39;-44;-49;-54;-59], ...
 FLAG_NOISE_ELI_VIA_AMP = true;
 
 % Manually ignore some of the measurements.
-BOOLS_MEAS_TO_FIT = {[1 1 1 1 1 1 0 0 0], ...
+BOOLS_MEAS_TO_FIT = {[1 1 1 1 1 1 1 0 0], ...
     [1 1 1 1 1 1 1]};
 
 % Sample rate used for GnuRadio.
@@ -62,9 +62,9 @@ minValidEstSnr = 0; % Before: 1.5.
 numStartSampsToDiscard = 100000; % ~0.1s
 % After discarding these samples, furthermore only keep the middle part of
 % the signal for calibration.
-timeLengthAtCenterToUse = 3; % In second.
+timeLengthAtCenterToUse = 1; % In second.
 
-% The 76dB gain dataset (set #1 needs more noise elimination).
+% It seems the 76dB gain dataset (set #1 needs more noise elimination).
 NUMS_SIGMA_FOR_THRESHOLD = [3.5, 3.5];
 
 % Set this to true if you want figures to be generated silently.
@@ -74,6 +74,15 @@ FLAG_GEN_PLOTS_SILENTLY = true;
 % be true to also save a .fig version (which may dramatically slow down the
 % program).
 FLAG_SAVE_FIG_COPY = false;
+
+% Parameters to overwrite when using the 60 kHz / 5 kHz LPF implemented in
+% Matlab.
+if ~FLAG_USE_FILTERED_OUTPUT_FILES
+    maxFreqPassed = 20000;
+end
+
+% Regression method to use, e.g. 'robustfit', 'polyfit'.
+LINEAR_REGRESSION_METHOD = 'robustfit';
 
 %% Before Calibration
 
@@ -124,6 +133,24 @@ disp('    Done!')
 disp(' ')
 disp('    Loading calibration data...')
 
+% If original .out files are used instead, we need to pass it through a 60
+% kHz LPF.
+if ~FLAG_USE_FILTERED_OUTPUT_FILES
+    % Construct an LPF.
+    Fp  = 60e3;   	% 20 kHz passband-edge frequency
+    Fst = 65e3;     % Transition Width = Fst - Fp
+    Ap = 0.01;      % Allowed peak-to-peak ripple
+    Ast = 80;       % Stopband attenuation
+    
+    lpfComplex = dsp.LowpassFilter('SampleRate', Fs, ...
+        'FilterType', 'FIR', 'PassbandFrequency', Fp, ...
+        'StopbandFrequency', Fst, ...
+        'PassbandRipple', Ap, ...
+        'StopbandAttenuation', Ast ...
+        );
+    release(lpfComplex);
+end
+
 calData = cell(numDatasets,1);
 for idxDataset = 1:numDatasets
     curDatasetAbsPath = absPathsToCalDatasets{idxDataset};
@@ -147,6 +174,9 @@ for idxDataset = 1:numDatasets
     for idxCurMeas = 1:curNumMeas
         curCalData{idxCurMeas} = ...
             read_complex_binary(curCalDataLogs(idxCurMeas).name);
+        if ~FLAG_USE_FILTERED_OUTPUT_FILES
+            curCalData{idxCurMeas} = lpfComplex(curCalData{idxCurMeas});
+        end
     end
     calData{idxDataset} = curCalData;
 end
@@ -315,6 +345,7 @@ for idxDataset = 1:numDatasets
         else
             legend(hPowerSpectralDen, 'PSD');
         end
+        transparentizeCurLegends;
         grid minor;
         
         % The same PSD plot in dB.
@@ -346,7 +377,7 @@ for idxDataset = 1:numDatasets
         if FLAG_SAVE_FIG_COPY
             saveas(hPSDInputInDb, [pathInputPSDdBFileToSave, '.fig']);
             saveas(hPSDInputInDbWin, [pathWindowedInputPSDdBFileToSave, ...
-            '.fig']);
+                '.fig']);
             saveas(hPSD, [pathNewPSDFileToSave, '.fig']);
             saveas(hPSDdB, [pathNewPSDdBFileToSave, '.fig']);
         end
@@ -382,19 +413,21 @@ disp('    Done!')
 disp(' ')
 disp('    Plotting...')
 
-seriesColors = colormap(parula);
+seriesColors = parula;
 [numSeriesColors, ~] = size(seriesColors);
 rng(2);
 indicesColorToUse = randi([1 numSeriesColors],1,numDatasets);
 
-hFigCalibration = figure; hold on;
+% Calculated power vs measured power.
+hFigCalibrationCalcVsMeas = figure; hold on;
 calPs = vertcat(calculatedPowers{:});
 calPs = calPs(~isinf(calPs));
 meaPs = vertcat(measPowers{:});
 axisToSet = [min(meaPs) max(meaPs) ...
     min(calPs) max(calPs)];
 % Fitted least-squares line.
-[hLsLines, lsLinesPolys] = deal(cell(numDatasets,1));
+[hLsLines, hLsInvLines, lsLinesPolys, lsLinesPolysInv] = ...
+    deal(cell(numDatasets,1));
 for idxDataset = 1:numDatasets
     xs = measPowers{idxDataset};
     ys = calculatedPowers{idxDataset};
@@ -412,13 +445,10 @@ end
 % Set the visible area of the plot now according to the data points shown.
 axis(axisToSet); axis equal; finalAxis = axis; axis manual;
 % Add the lslines.
+[fittedMeaPs, fittedCalPs] = deal(cell(numDatasets,1));
 for idxDataset = 1:numDatasets
     xs = measPowers{idxDataset};
     ys = calculatedPowers{idxDataset};
-    
-    % For fitting, remove points with too low calculated power.
-    xsToFit = xs(ys>=minValidCalPower);
-    ysToFit = ys(ys>=minValidCalPower);
     
     % For fitting, remove points with too low estimated SNR.
     boolsPtsToFit = estimatedSnrs{idxDataset}>=minValidEstSnr;
@@ -427,15 +457,43 @@ for idxDataset = 1:numDatasets
     xsToFit = xs(boolsPtsToFit);
     ysToFit = ys(boolsPtsToFit);
     
+    % For fitting, remove points with too low calculated power.
+    xsToFit = xsToFit(xsToFit>=minValidCalPower);
+    ysToFit = ysToFit(ysToFit>=minValidCalPower);
+    
+    % Record the data points used in the fitting process.
+    fittedMeaPs{idxDataset} = xsToFit;
+    fittedCalPs{idxDataset} = ysToFit;
+    
     % Cover the unused points in the plot.
     hIgnoredPts = plot(xs(~boolsPtsToFit),ys(~boolsPtsToFit), ...
         'r*', 'LineWidth',1.5);
     
-    % Linear fitting.
-    lsLinePoly = polyfit(xsToFit, ysToFit, 1);
+    switch LINEAR_REGRESSION_METHOD
+        case 'polyfit'
+            % Linear fitting.
+            lsLinePoly = polyfit(xsToFit, ysToFit, 1);
+            % For future use & comparison.
+            lsLinePolyInv = polyfit(ysToFit, xsToFit, 1);
+        case 'robustfit'
+            lsLinePoly = robustfit(xsToFit, ysToFit);             
+            lsLinePolyInv = robustfit(ysToFit, xsToFit);
+            % To go with the output order for robustfit.
+            lsLinePoly = lsLinePoly(end:-1:1);
+            lsLinePolyInv = lsLinePolyInv(end:-1:1);
+        otherwise
+            error('Linear regression method not supported!')
+    end
     
-    % Plot the fitted line.
     xRangeToShow = linspace(finalAxis(1),finalAxis(2));
+    % First plot the cooresponding lsLinePolyInv as background, i.e. we
+    % will plot inverse(lsLinePolyInv) here.
+    hLsInvLines{idxDataset} = plot(xRangeToShow, ...
+        polyval(...
+        [1/lsLinePolyInv(1), -lsLinePolyInv(2)/lsLinePolyInv(1)], ...
+        xRangeToShow), ...
+        'LineStyle', '-.', 'Color',ones(1,3).*0.8);
+    % Then plot the fitted line.
     valuesLsLine = polyval(lsLinePoly,xRangeToShow);
     hLsLines{idxDataset} = ...
         plot(xRangeToShow,valuesLsLine, ...
@@ -450,11 +508,20 @@ for idxDataset = 1:numDatasets
         strPoly=['y = ',num2str(lsLinePoly(1)),'x'];
     end
     idxMiddlePtToFit = floor(length(xsToFit)/2);
-    hPolyText = text(xsToFit(idxMiddlePtToFit), ...
-        ysToFit(idxMiddlePtToFit), strPoly);
-    set(hPolyText,'Rotation',rad2deg(atan(lsLinePoly(1))));
+        % Black bold copy as background for clarity.
+    text(xsToFit(idxMiddlePtToFit), ...
+        ysToFit(idxMiddlePtToFit), strPoly, ...
+        'Rotation', rad2deg(atan(lsLinePolyInv(1))), ...
+        'FontWeight', 'bold', 'Color', 'white', ...
+        'VerticalAlignment', 'top');
+    text(xsToFit(idxMiddlePtToFit), ...
+        ysToFit(idxMiddlePtToFit), strPoly, ...
+        'Rotation',rad2deg(atan(lsLinePolyInv(1))), ...
+        'Color', seriesColors(indicesColorToUse(idxDataset),:), ...
+        'VerticalAlignment', 'top');
     
     lsLinesPolys{idxDataset} = lsLinePoly;
+    lsLinesPolysInv{idxDataset} = lsLinePolyInv;
 end
 if ~isinf(minValidCalPower)
     plot([finalAxis(1) finalAxis(2)], [minValidCalPower minValidCalPower], ...
@@ -468,14 +535,131 @@ title('Calibration results');
 xlabel('Measured Power (dB)');
 ylabel('Calculated Power (dB)');
 grid minor; hold off;
-pathCalFileToSave = fullfile(ABS_PATH_TO_SAVE_PLOTS, 'Calibration');
-saveas(hFigCalibration, [pathCalFileToSave, '.png']);
+
+% Similarly, measured power vs calculated power.
+hFigCalibrationMeasVsCalc = figure; hold on;
+axisToSet = [ min(calPs) max(calPs) ...
+    min(meaPs) max(meaPs)];
+% Calibration points.
+for idxDataset = 1:numDatasets
+    xs = calculatedPowers{idxDataset};
+    ys = measPowers{idxDataset};
+    
+    % For plotting, only avoid points with inf as calculated power.
+    xsToShow = xs(~isinf(ys));
+    ysToShow = ys(~isinf(ys));
+    
+    % Plot the results.
+    colorToUse = seriesColors(indicesColorToUse(idxDataset),:);
+    % Non-inf points.
+    scatter(xsToShow, ysToShow, '*', 'MarkerEdgeColor', colorToUse, ...
+        'LineWidth',1.5);
+end
+% Set the visible area of the plot now according to the data points shown.
+axis(axisToSet); axis equal; finalAxis = axis; axis manual;
+% Add the lslines.
+for idxDataset = 1:numDatasets
+    xs = calculatedPowers{idxDataset};
+    ys = measPowers{idxDataset};
+    
+    % For fitting, remove points with too low estimated SNR.
+    boolsPtsToFit = estimatedSnrs{idxDataset}>=minValidEstSnr;
+    % Also get rid of measurements to use in line fitting.
+    boolsPtsToFit = boolsPtsToFit & BOOLS_MEAS_TO_FIT{idxDataset}';
+    xsToFit = xs(boolsPtsToFit);
+    ysToFit = ys(boolsPtsToFit);
+    
+    % For fitting, remove points with too low calculated power.
+    xsToFit = xsToFit(xsToFit>=minValidCalPower);
+    ysToFit = ysToFit(ysToFit>=minValidCalPower);
+    
+    % Cover the unused points in the plot.
+    hIgnoredPts = plot(xs(~boolsPtsToFit),ys(~boolsPtsToFit), ...
+        'r*', 'LineWidth',1.5);
+    
+    xRangeToShow = linspace(finalAxis(1),finalAxis(2));
+    % Plot the fitted line.
+    lsLinePolyInv = lsLinesPolysInv{idxDataset};
+    valuesLsLine = polyval(lsLinePolyInv, xRangeToShow);
+    hLsLines{idxDataset} = ...
+        plot(xRangeToShow,valuesLsLine, ...
+        'Color',colorToUse,'LineStyle', '--');
+    
+    % Show the polynomial on the plot.
+    if lsLinePolyInv(2)>0
+        strPoly=['y = ',num2str(lsLinePolyInv(1)),'x+',num2str(lsLinePolyInv(2))];
+    elseif lsLinePolyInv(2)<0
+        strPoly=['y = ',num2str(lsLinePolyInv(1)),'x',num2str(lsLinePolyInv(2))];
+    else % lsLinePolyInv(2)==0
+        strPoly=['y = ',num2str(lsLinePolyInv(1)),'x'];
+    end
+    idxMiddlePtToFit = floor(length(xsToFit)/2);
+    % Black bold copy as background for clarity.
+    text(xsToFit(idxMiddlePtToFit), ...
+        ysToFit(idxMiddlePtToFit), strPoly, ...
+        'Rotation', rad2deg(atan(lsLinePolyInv(1))), ...
+        'FontWeight', 'bold', 'Color', 'white', ...
+        'VerticalAlignment', 'top');
+    text(xsToFit(idxMiddlePtToFit), ...
+        ysToFit(idxMiddlePtToFit), strPoly, ...
+        'Rotation',rad2deg(atan(lsLinePolyInv(1))), ...
+        'Color', seriesColors(indicesColorToUse(idxDataset),:), ...
+        'VerticalAlignment', 'top');
+end
+if ~isinf(minValidCalPower)
+    plot([finalAxis(1) finalAxis(2)], [minValidCalPower minValidCalPower], ...
+        'r--');
+    x = [finalAxis(1) finalAxis(1) finalAxis(2) finalAxis(2)];
+    minY = -200;
+    y = [minY minValidCalPower minValidCalPower minY];
+    patch(x,y,[1,1,1].*0.6,'FaceAlpha',0.3,'LineStyle','none');
+end
+title('Calibration results');
+xlabel('Calculated Power (dB)');
+ylabel('Measured Power (dB)');
+grid minor; hold off;
+
+% Save the figures. We will embed key parameters into the figure file name,
+% e.g.:
+%   Calibration_20170915_center_1s_matlabLPF_20kHz_ignore_2_1st_1_2nd.png
+if FLAG_USE_FILTERED_OUTPUT_FILES
+    matlabLPFStr = '';
+else
+    matlabLPFStr = 'matlabLPF_';
+end
+[ignoreStr, ignoreStrSet1, ignoreStrSet2] = deal('');
+if ~all([BOOLS_MEAS_TO_FIT{1:end}])
+    ignoreStr = '_ignore_';
+    if ~all(BOOLS_MEAS_TO_FIT{1})
+        ignoreStrSet1 = [num2str(sum(~BOOLS_MEAS_TO_FIT{1})), '_1st'];
+    end
+    if ~all(BOOLS_MEAS_TO_FIT{2})
+        ignoreStrSet2 = ['_', num2str(sum(~BOOLS_MEAS_TO_FIT{2})), '_2nd'];
+    end
+end
+pathCalFileToSave = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
+    ['Calibration_', datestr(datetime('now'), 'yyyymmdd'), ...
+    '_center_', num2str(timeLengthAtCenterToUse), 's_', ...
+    matlabLPFStr, ...
+    num2str(maxFreqPassed/1000), 'kHz', ...
+    ignoreStr, ignoreStrSet1, ignoreStrSet2]);
+saveas(hFigCalibrationCalcVsMeas, [pathCalFileToSave, '_CalcVsMeas.png']);
+saveas(hFigCalibrationMeasVsCalc, [pathCalFileToSave, '_MeasVsCal.png']);
 if FLAG_SAVE_FIG_COPY
-    saveas(hFigCalibration, [pathCalFileToSave, '.fig']);
+    saveas(hFigCalibrationCalcVsMeas, [pathCalFileToSave, '_CalcVsMeas.fig']);
+    saveas(hFigCalibrationMeasVsCal, [pathCalFileToSave, '_MeasVsCal.fig']);
 end
 disp('    Done!')
 
 if FLAG_GEN_PLOTS_SILENTLY
     set(0,'DefaultFigureVisible','on');
 end
+
+% Save the calibration points and the resulted polynomials for the fitted
+% lines.
+pathCalFileToSave = fullfile(ABS_PATH_TO_SAVE_PLOTS, 'lsLinesPolys');
+save([pathCalFileToSave, '.mat'], ...
+    'lsLinesPolys', 'lsLinesPolysInv', 'fittedMeaPs', 'fittedCalPs', ...
+    'rxGains');
+
 % EOF

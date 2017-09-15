@@ -155,6 +155,7 @@ if flagDebug
         hold off; grid minor; axis tight;
         legend([hShiftedWaveformAmp, maxShifedWaveformAmp(1)], ...
             'Used to compute delta', '+/- ampMax');
+        transparentizeCurLegends;
         title('Samples for computing noise sigma');
         ylabel('Signal strength'); xlabel('time (s)');
         subFigCounter = subFigCounter+1;
@@ -169,6 +170,7 @@ if flagDebug
     hold off; grid minor; axis tight;
     legend([hPtsConsidered, hPtsNotCons], ...
         'Used to compute delta', 'Other points before peak #1');
+    transparentizeCurLegends;
     title('Samples for computing noise sigma');
     ylabel('Signal strength'); xlabel('time (s)');
     subFigCounter = subFigCounter+1;
@@ -197,6 +199,7 @@ if flagDebug
     axis(finalAxis);
     legend([hDiscardRegion, hEliminatedPts, hTwiceMedian(1)], ...
         ['Elimination Region (', num2str(NUM_SIGMA_FOR_THRESHOLD),'*sigma+mean)'], 'Eliminated Samples', '+/- twiceMedianShifted');
+    transparentizeCurLegends;
     title('Eliminated samples (Set to 0)');
     ylabel('Signal strength'); xlabel('time (s)');
     subFigCounter = subFigCounter+1;
