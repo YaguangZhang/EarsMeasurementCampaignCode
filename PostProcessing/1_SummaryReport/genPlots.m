@@ -11,14 +11,11 @@ clear; clc; close all;
 
 %% Configurations
 
-% The absolute path to the shared Google Drive folder "Annapolis
-% Measurement Campaign". Please make sure it is correct for the machine
-% which will run this script.
-%     On Mac Lemma: '/Users/zhan1472/Google Drive/Annapolis Measurement
-%      Campaign';
-%  On Windows Dell: '\\LEMMA\Google Drive\Annapolis Measurement Campaign';
-ABS_PATH_TO_EARS_SHARED_FOLDER = ...
-    '/Users/zhan1472/Google Drive/Annapolis Measurement Campaign';
+% Add libs to current path and set ABS_PATH_TO_EARS_SHARED_FOLDER according
+% to the machine name.
+cd(fileparts(mfilename('fullpath')));
+addpath(fullfile(pwd));
+cd('..'); setPath;
 
 % Flags to enable coresponding plot functions.
 FLAG_PLOT_GPS_FOR_EACH_DAY = true;
@@ -42,11 +39,6 @@ disp(' ---------- ')
 
 % Disable the tex interpreter in figures.
 set(0,'DefaultTextInterpreter','none');
-
-% Add libs to current path.
-cd(fileparts(mfilename('fullpath')));
-addpath(fullfile(pwd));
-cd('..'); setPath;
 
 % Create directories if necessary.
 if exist(ABS_PATH_TO_SAVE_PLOTS, 'dir')~=7

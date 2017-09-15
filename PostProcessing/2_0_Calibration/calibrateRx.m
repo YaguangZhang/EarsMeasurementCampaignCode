@@ -9,15 +9,11 @@ clear; clc; close all;
 
 %% Configurations
 
-% The absolute path to the shared Google Drive folder "Annapolis
-% Measurement Campaign". Please make sure it is correct for the machine
-% which will run this script.
-%  On Mac Lemma:
-%    '/Users/zhan1472/Google Drive/Annapolis Measurement Campaign'
-%  On Windows Dell:
-%    'C:\Users\Zyglabs\Documents\MEGAsync\EARS'
-ABS_PATH_TO_EARS_SHARED_FOLDER = ...
-    'C:\Users\Zyglabs\Documents\MEGAsync\EARS';
+% Add libs to current path and set ABS_PATH_TO_EARS_SHARED_FOLDER according
+% to the machine name.
+cd(fileparts(mfilename('fullpath')));
+addpath(fullfile(pwd));
+cd('..'); setPath;
 
 % Configure other paths accordingly.
 ABS_PATH_TO_CALI_DATA = fullfile(ABS_PATH_TO_EARS_SHARED_FOLDER, ...
@@ -98,11 +94,6 @@ if FLAG_GEN_PLOTS_SILENTLY
 else
     set(0,'DefaultFigureVisible','on');
 end
-
-% Add libs to current path.
-cd(fileparts(mfilename('fullpath')));
-addpath(fullfile(pwd));
-cd('..'); setPath;
 
 % Create directories if necessary.
 if exist(ABS_PATH_TO_SAVE_PLOTS, 'dir')~=7

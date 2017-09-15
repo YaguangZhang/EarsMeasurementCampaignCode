@@ -7,7 +7,8 @@ clear; clc; close all;
 
 %% Configuration
 
-% Add libs to current path.
+% Add libs to current path and set ABS_PATH_TO_EARS_SHARED_FOLDER according
+% to the machine name.
 cd(fileparts(mfilename('fullpath')));
 curPath = pwd;
 addpath(fullfile(pwd));

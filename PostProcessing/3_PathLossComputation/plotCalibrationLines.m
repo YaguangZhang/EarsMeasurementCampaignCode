@@ -7,27 +7,19 @@ clear; clc; close all;
 
 %% Configurations
 
-% The absolute path to the shared Google Drive folder "Annapolis
-% Measurement Campaign". Please make sure it is correct for the machine
-% which will run this script.
-%  On Mac Lemma:
-%    '/Users/zhan1472/Google Drive/Annapolis Measurement Campaign'
-%  On Windows Dell:
-%    'C:\Users\Zyglabs\Documents\MEGAsync\EARS'
-ABS_PATH_TO_EARS_SHARED_FOLDER = ...
-    'C:\Users\Zyglabs\Documents\MEGAsync\EARS';
+% Add libs to current path and set ABS_PATH_TO_EARS_SHARED_FOLDER according
+% to the machine name.
+cd(fileparts(mfilename('fullpath')));
+addpath(fullfile(pwd));
+cd('..'); setPath;
 
+% Configure other paths accordingly.
 ABS_PATH_TO_CALIBRATION_REF_POLYGONS = fullfile(...
     ABS_PATH_TO_EARS_SHARED_FOLDER, ...
     'PostProcessingResults', 'Calibration');
 
 ABS_PATH_TO_SAVE_PLOTS = fullfile(ABS_PATH_TO_EARS_SHARED_FOLDER, ...
     'PostProcessingResults', 'PathLossComputation');
-
-% Add libs to current path.
-cd(fileparts(mfilename('fullpath')));
-addpath(fullfile(pwd));
-cd('..'); setPath;
 
 %% Before Processing the Data
 

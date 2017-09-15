@@ -4,6 +4,9 @@
 % Yaguang Zhang, Purdue, 06/18/2017
 
 %% Load data and set the current Matlab directory.
+
+% Add libs to current path and set ABS_PATH_TO_EARS_SHARED_FOLDER according
+% to the machine name.
 cd(fileparts(mfilename('fullpath')));
 addpath(fullfile(pwd));
 cd('..'); setPath;
