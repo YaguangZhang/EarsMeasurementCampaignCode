@@ -638,9 +638,8 @@ saveas(hFigCalibrationCalcVsMeas, [pathCalFileToSave, '_CalcVsMeas.png']);
 saveas(hFigCalibrationMeasVsCalc, [pathCalFileToSave, '_MeasVsCal.png']);
 if FLAG_SAVE_FIG_COPY
     saveas(hFigCalibrationCalcVsMeas, [pathCalFileToSave, '_CalcVsMeas.fig']);
-    saveas(hFigCalibrationMeasVsCal, [pathCalFileToSave, '_MeasVsCal.fig']);
+    saveas(hFigCalibrationMeasVsCalc, [pathCalFileToSave, '_MeasVsCal.fig']);
 end
-disp('    Done!')
 
 if FLAG_GEN_PLOTS_SILENTLY
     set(0,'DefaultFigureVisible','on');
@@ -652,5 +651,7 @@ pathCalFileToSave = fullfile(ABS_PATH_TO_SAVE_PLOTS, 'lsLinesPolys');
 save([pathCalFileToSave, '.mat'], ...
     'lsLinesPolys', 'lsLinesPolysInv', 'fittedMeaPs', 'fittedCalPs', ...
     'rxGains');
+
+disp('    Done!')
 
 % EOF

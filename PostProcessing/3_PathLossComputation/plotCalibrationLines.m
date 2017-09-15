@@ -23,12 +23,19 @@ ABS_PATH_TO_SAVE_PLOTS = fullfile(ABS_PATH_TO_EARS_SHARED_FOLDER, ...
 
 %% Before Processing the Data
 
+disp(' ----------------------- ')
+disp('  plotCalibrationLines')
+disp(' ----------------------- ')
+
 % Create directories if necessary.
 if exist(ABS_PATH_TO_SAVE_PLOTS, 'dir')~=7
     mkdir(ABS_PATH_TO_SAVE_PLOTS);
 end
 
 %% Get All the Gains Covered by the Measurement Data
+
+disp(' ')
+disp('    Loading GPS logs...')
 
 gpsLogs = rdir(fullfile(ABS_PATH_TO_EARS_SHARED_FOLDER, 'Data', '**', ...
     '*_GPS.log'));
@@ -40,9 +47,14 @@ gains_needed = cell2mat(arrayfun( ...
     'UniformOutput', false));
 gains_needed = unique(gains_needed);
 
+disp('    Done!')
+
 %% Read the Polynomials for the Reference Calibration
 % WE will get lsLinesPolys, lsLinesPolysInv, fittedMeaPs, fittedCalPs, and
 % rxGains.
+
+disp(' ')
+disp('    Calibrating...')
 
 fileLsLinesPolys = fullfile(ABS_PATH_TO_CALIBRATION_REF_POLYGONS, ...
     'lsLinesPolys.mat');
@@ -62,6 +74,11 @@ end
 [xRangeToShow, yRangeToShow] = deal([-100, 0]);
 powerShiftsForCali = genCalibrationFct(lsLinesPolysInv, rxGains, ...
     gains_needed);
+
+disp('    Done!')
+
+disp(' ')
+disp('    Plotting...')
 
 % Fix the colors to use.
 rng(1);
@@ -100,5 +117,12 @@ pathCaliLinesFileToSave = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
     'caliLinesNeeded');
 saveas(hCalibrationLines, [pathCaliLinesFileToSave, '.png']);
 saveas(hCalibrationLines, [pathCaliLinesFileToSave, '.fig']);
+
+% Also save a zoomed-in version for clearity.
+hCalibrationLinesZoomedIn = openfig([pathCaliLinesFileToSave, '.fig']);
+axis(axis/10);
+saveas(hCalibrationLines, [pathCaliLinesFileToSave, 'ZoomedIn.png']);
+
+disp('    Done!')
 
 % EOF
