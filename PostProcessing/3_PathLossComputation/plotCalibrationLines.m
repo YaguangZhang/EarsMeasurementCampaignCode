@@ -121,7 +121,8 @@ saveas(hCalibrationLines, [pathCaliLinesFileToSave, '.fig']);
 % Also save a zoomed-in version for clearity.
 hCalibrationLinesZoomedIn = openfig([pathCaliLinesFileToSave, '.fig']);
 axis(axis/10);
-saveas(hCalibrationLines, [pathCaliLinesFileToSave, 'ZoomedIn.png']);
+saveas(hCalibrationLinesZoomedIn, ...
+    [pathCaliLinesFileToSave, 'ZoomedIn.png']);
 
 disp('    Done!')
 
