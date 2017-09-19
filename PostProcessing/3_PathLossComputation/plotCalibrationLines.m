@@ -121,6 +121,7 @@ saveas(hCalibrationLines, [pathCaliLinesFileToSave, '.fig']);
 % Also save a zoomed-in version for clearity.
 hCalibrationLinesZoomedIn = openfig([pathCaliLinesFileToSave, '.fig']);
 axis(axis/10);
+transparentizeCurLegends;
 saveas(hCalibrationLinesZoomedIn, ...
     [pathCaliLinesFileToSave, 'ZoomedIn.png']);
 

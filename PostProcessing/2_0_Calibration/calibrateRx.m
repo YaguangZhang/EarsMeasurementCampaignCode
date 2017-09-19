@@ -47,6 +47,8 @@ BOOLS_MEAS_TO_FIT = {[1 1 1 1 1 1 1 0 0], ...
 Fs = 1.04 * 10^6;
 % Low pass filter for the PSD. Tried before: 46000; 39500.
 maxFreqPassed = 30000; % In Hz.
+% High pass filter to remove the DC component.
+minFreqPassed = 1; % In Hz.
 
 % Minimum valid calculated power.
 minValidCalPower = -inf; % In dB. Before: -140.
@@ -61,7 +63,7 @@ numStartSampsToDiscard = 100000; % ~0.1s
 timeLengthAtCenterToUse = 1; % In second.
 
 % It seems the 76dB gain dataset (set #1 needs more noise elimination).
-NUMS_SIGMA_FOR_THRESHOLD = [3.5, 3.5];
+NUMS_SIGMA_FOR_THRESHOLD = [1, 1].*3.5;
 
 % Set this to true if you want figures to be generated silently.
 FLAG_GEN_PLOTS_SILENTLY = true;
@@ -77,8 +79,8 @@ if ~FLAG_USE_FILTERED_OUTPUT_FILES
     maxFreqPassed = 20000;
 end
 
-% Regression method to use, e.g. 'robustfit', 'polyfit'.
-LINEAR_REGRESSION_METHOD = 'robustfit';
+% Regression method to use, e.g. 'robustfit', 'polyfit', and 'regress'.
+LINEAR_REGRESSION_METHOD = 'regress';
 
 %% Before Calibration
 
@@ -128,7 +130,7 @@ disp('    Loading calibration data...')
 % kHz LPF.
 if ~FLAG_USE_FILTERED_OUTPUT_FILES
     % Construct an LPF.
-    Fp  = 60e3;   	% 20 kHz passband-edge frequency
+    Fp  = 60e3;   	% 60 kHz passband-edge frequency
     Fst = 65e3;     % Transition Width = Fst - Fp
     Ap = 0.01;      % Allowed peak-to-peak ripple
     Ast = 80;       % Stopband attenuation
@@ -236,14 +238,26 @@ for idxDataset = 1:numDatasets
         powerSpectralDen0Win = abs(Y0Win).^2/L0;
         
         % Plot the result in dB for debugging.
-        hPSDInputInDb = plotPsdInDbWithLPF(powerSpectralDen0, f0, ...
-            maxFreqPassed);
+        [hPSDInputInDb, hPSDInputInDbZoomedIn] = ...
+            plotPsdInDbWithLPF(powerSpectralDen0, f0, ...
+            maxFreqPassed, minFreqPassed);
+        set(0, 'CurrentFigure', hPSDInputInDb);
         title({['Estimated Power Spectrum Density (dB) - Set #', ...
             num2str(idxDataset), ' Pt #', num2str(idxCurMeas)], ...
             'Before Noise Eliminiation'});
-        hPSDInputInDbWin = plotPsdInDbWithLPF(powerSpectralDen0Win, f0, ...
-            maxFreqPassed);
+        set(0, 'CurrentFigure', hPSDInputInDbZoomedIn);
+        title({['Estimated Power Spectrum Density (dB) Zoomed In - Set #', ...
+            num2str(idxDataset), ' Pt #', num2str(idxCurMeas)], ...
+            'Before Noise Eliminiation'});
+        [hPSDInputInDbWin, hPSDInputInDbWinZoomedIn] = ...
+            plotPsdInDbWithLPF(powerSpectralDen0Win, f0, ...
+            maxFreqPassed, minFreqPassed);
+        set(0, 'CurrentFigure', hPSDInputInDbWin);
         title({['Estimated Power Spectrum Density (dB) - Set #', ...
+            num2str(idxDataset), ' Pt #', num2str(idxCurMeas)], ...
+            'Before Noise Eliminiation, Windowed'});
+        set(0, 'CurrentFigure', hPSDInputInDbWinZoomedIn);
+        title({['Estimated Power Spectrum Density (dB) Zoomed In - Set #', ...
             num2str(idxDataset), ' Pt #', num2str(idxCurMeas)], ...
             'Before Noise Eliminiation, Windowed'});
         
@@ -304,11 +318,22 @@ for idxDataset = 1:numDatasets
             y = [curAxis(3) curAxis(4) curAxis(4) curAxis(3)];
             patch(x,y,[1,1,1].*0.6,'FaceAlpha',0.3,'LineStyle','none');
         end
+        if minFreqPassed>0
+            hHPF = plot([minFreqPassed, -minFreqPassed; ...
+                minFreqPassed, -minFreqPassed], ...
+                [curAxis(3),curAxis(3); ...
+                curAxis(4),curAxis(4)], '-.k');
+            x = [-minFreqPassed minFreqPassed ...
+                minFreqPassed -minFreqPassed];
+            y = [curAxis(3) curAxis(4) curAxis(4) curAxis(3)];
+            patch(x,y,[1,1,1].*0.6,'FaceAlpha',0.3,'LineStyle','none');
+        end
         
         % Compute the power.
-        indicesFPassed = find(abs(f)<=maxFreqPassed);
-        % Compute the power by integral. Note that we will discard the DC
-        % component here (will be passed by the LPF).
+        indicesFPassed = find(abs(f)<=maxFreqPassed ...
+            & abs(f)>=minFreqPassed);
+        % Compute the power by integral. Note that we will always discard
+        % the DC component here (may be passed by the filters).
         psdPassed = powerSpectralDen;
         psdPassed(idxDC) = 0;
         psdPassed = psdPassed(indicesFPassed);
@@ -331,8 +356,15 @@ for idxDataset = 1:numDatasets
         title(['Estimated Power Spectrum Density - Set #', ...
             num2str(idxDataset), ' Pt #', num2str(idxCurMeas)]);
         xlabel('f (Hz)'); ylabel('Estimated PSD (V^2/Hz)'); axis(curAxis);
-        if ~isinf(maxFreqPassed)
-            legend([hPowerSpectralDen, hLPF(1)], 'PSD', 'LPF');
+        if ~isinf(maxFreqPassed) && minFreqPassed>0
+            legend([hPowerSpectralDen, hLPF(1), hHPF(1)], ...
+                'PSD', 'LPF', 'HPF');
+        elseif isinf(maxFreqPassed) && minFreqPassed>0
+            legend([hPowerSpectralDen, hHPF(1)], ...
+                'PSD', 'HPF');
+        elseif ~isinf(maxFreqPassed) && minFreqPassed<=0
+            legend([hPowerSpectralDen, hLPF(1)], ...
+                'PSD', 'LPF');
         else
             legend(hPowerSpectralDen, 'PSD');
         end
@@ -340,9 +372,13 @@ for idxDataset = 1:numDatasets
         grid minor;
         
         % The same PSD plot in dB.
-        hPSDdB = plotPsdInDbWithLPF(powerSpectralDen, f, maxFreqPassed, ...
-            curEstimatedSnrs(idxCurMeas));
+        [hPSDdB, hPSDdBZoomedIn] = plotPsdInDbWithLPF(powerSpectralDen, f, maxFreqPassed, ...
+            minFreqPassed, curEstimatedSnrs(idxCurMeas));
+        set(0, 'CurrentFigure', hPSDdB);
         title(['Estimated Power Spectrum Density (dB) - Set #', ...
+            num2str(idxDataset), ' Pt #', num2str(idxCurMeas)]);
+        set(0, 'CurrentFigure', hPSDdBZoomedIn);
+        title(['Estimated Power Spectrum Density (dB) Zoomed In - Set #', ...
             num2str(idxDataset), ' Pt #', num2str(idxCurMeas)]);
         
         % Paths to save the plots.
@@ -360,17 +396,25 @@ for idxDataset = 1:numDatasets
             ['set-',num2str(idxDataset),'-pt-',num2str(idxCurMeas), '-noise-sigma-']);
         % A .png figure for easy access.
         saveas(hPSDInputInDb, [pathInputPSDdBFileToSave, '.png']);
+        saveas(hPSDInputInDbZoomedIn, [pathInputPSDdBFileToSave, '-zoomed-in.png']);
         saveas(hPSDInputInDbWin, [pathWindowedInputPSDdBFileToSave, ...
             '.png']);
+        saveas(hPSDInputInDbWinZoomedIn, [pathWindowedInputPSDdBFileToSave, ...
+            '-zoomed-in.png']);
         saveas(hPSD, [pathNewPSDFileToSave, '.png']);
         saveas(hPSDdB, [pathNewPSDdBFileToSave, '.png']);
+        saveas(hPSDdBZoomedIn, [pathNewPSDdBFileToSave, '-zoomed-in.png']);
         % Also a .fig copy.
         if FLAG_SAVE_FIG_COPY
             saveas(hPSDInputInDb, [pathInputPSDdBFileToSave, '.fig']);
+            saveas(hPSDInputInDbZoomedIn, [pathInputPSDdBFileToSave, '-zoomed-in.fig']);
             saveas(hPSDInputInDbWin, [pathWindowedInputPSDdBFileToSave, ...
                 '.fig']);
+            saveas(hPSDInputInDbWinZoomedIn, [pathWindowedInputPSDdBFileToSave, ...
+                '-zoomed-in.fig']);
             saveas(hPSD, [pathNewPSDFileToSave, '.fig']);
             saveas(hPSDdB, [pathNewPSDdBFileToSave, '.fig']);
+            saveas(hPSDdBZoomedIn, [pathNewPSDdBFileToSave, '-zoomed-in.fig']);
         end
         
         % Plot the noise elimination for the real & imaginary parts only if
@@ -467,9 +511,15 @@ for idxDataset = 1:numDatasets
             % For future use & comparison.
             lsLinePolyInv = polyfit(ysToFit, xsToFit, 1);
         case 'robustfit'
-            lsLinePoly = robustfit(xsToFit, ysToFit);             
+            lsLinePoly = robustfit(xsToFit, ysToFit);
             lsLinePolyInv = robustfit(ysToFit, xsToFit);
-            % To go with the output order for robustfit.
+            % To go with the output order for polyfit.
+            lsLinePoly = lsLinePoly(end:-1:1);
+            lsLinePolyInv = lsLinePolyInv(end:-1:1);
+        case 'regress'
+            lsLinePoly = regress(ysToFit,[ones(length(xsToFit),1) xsToFit]);
+            lsLinePolyInv = regress(xsToFit,[ones(length(ysToFit),1) ysToFit]);
+            % To go with the output order for polyfit.
             lsLinePoly = lsLinePoly(end:-1:1);
             lsLinePolyInv = lsLinePolyInv(end:-1:1);
         otherwise
@@ -499,7 +549,7 @@ for idxDataset = 1:numDatasets
         strPoly=['y = ',num2str(lsLinePoly(1)),'x'];
     end
     idxMiddlePtToFit = floor(length(xsToFit)/2);
-        % Black bold copy as background for clarity.
+    % Black bold copy as background for clarity.
     text(xsToFit(idxMiddlePtToFit), ...
         ysToFit(idxMiddlePtToFit), strPoly, ...
         'Rotation', rad2deg(atan(lsLinePolyInv(1))), ...
@@ -616,7 +666,7 @@ grid minor; hold off;
 if FLAG_USE_FILTERED_OUTPUT_FILES
     matlabLPFStr = '';
 else
-    matlabLPFStr = 'matlabLPF_';
+    matlabLPFStr = ['matlabLPF_', num2str(Fp/1000), 'kHz_'];
 end
 [ignoreStr, ignoreStrSet1, ignoreStrSet2] = deal('');
 if ~all([BOOLS_MEAS_TO_FIT{1:end}])
@@ -629,10 +679,15 @@ if ~all([BOOLS_MEAS_TO_FIT{1:end}])
     end
 end
 pathCalFileToSave = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
-    ['Calibration_', datestr(datetime('now'), 'yyyymmdd'), ...
+    ['Calibration_', datestr(datetime('now'), 'yyyymmdd'), '_', ...
+    LINEAR_REGRESSION_METHOD, ...
+    '_ths_', num2str(NUMS_SIGMA_FOR_THRESHOLD(1)), '_', ...
+    num2str(NUMS_SIGMA_FOR_THRESHOLD(2)), ...
     '_center_', num2str(timeLengthAtCenterToUse), 's_', ...
     matlabLPFStr, ...
-    num2str(maxFreqPassed/1000), 'kHz', ...
+    'range_', ...
+    num2str(minFreqPassed), 'Hz', ...
+    num2str(maxFreqPassed/1000), 'kHz_', ...
     ignoreStr, ignoreStrSet1, ignoreStrSet2]);
 saveas(hFigCalibrationCalcVsMeas, [pathCalFileToSave, '_CalcVsMeas.png']);
 saveas(hFigCalibrationMeasVsCalc, [pathCalFileToSave, '_MeasVsCal.png']);

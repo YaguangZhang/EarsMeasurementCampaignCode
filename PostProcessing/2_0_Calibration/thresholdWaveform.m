@@ -40,6 +40,7 @@ PEAK_SEARCH_METHOD = 'TallEnoughAbs';
 try
     NUM_SIGMA_FOR_THRESHOLD = evalin('base', 'NUM_SIGMA_FOR_THRESHOLD');
 catch
+    warning('    NUM_SIGMA_FOR_THRESHOLD not set in the base workspace. Will use the default value 3 for it.')
     NUM_SIGMA_FOR_THRESHOLD = 3;
 end
 % Number of samples to discard at the beginning. Note this is a local
