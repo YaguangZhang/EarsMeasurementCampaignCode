@@ -43,6 +43,10 @@ Fs = 1.04 * 10^6;
 % For setting the threshold during the noise elimination.
 NUM_SIGMA_FOR_THRESHOLD = 3.5;
 
+% Transmitter location.
+TX_LAT = 38.983899;
+TX_LON = -76.486682;
+    
 %% Before Processing the Data
 
 disp(' ----------------------- ')
@@ -110,12 +114,18 @@ numOutFiles = sum(cellfun(@(d) length(d), allOutFilesDirs));
 % More specifically, each row is a [path loss (dB), lat, lon] array.
 pathLossesWithGpsInfo = nan(numOutFiles, 3);
 pathLossCounter = 1;
+% Also save the meta info needed to map the path loss back to the
+% measurements. We choose to save the full file path to the .out file for
+% convenience.
+absPathsOutFiles = cell(numOutFiles, 1);
 for idxSeries = 1:numSeries
     disp(['        Processing series ', num2str(idxSeries), '/', ...
         num2str(numSeries), '...']);
-    for idxOutFile = 1:numOutFiles
+    
+    numOutFileCurSeries = length(allOutFilesDirs{idxSeries});
+    for idxOutFile = 1:numOutFileCurSeries
         disp(['            Outfile ', num2str(idxOutFile), '/', ...
-            num2str(numOutFiles), '...']);
+            num2str(numOutFileCurSeries), '...']);
         
         curOutFileDir = allOutFilesDirs{idxSeries}(idxOutFile);
         [lat, lon, gpsLog] = fetchGpsForOutFileDir(curOutFileDir);
@@ -124,19 +134,32 @@ for idxSeries = 1:numSeries
         usrpGain = str2num(gpsLog.rxChannelGain);
         powerShiftsForCali = genCalibrationFct( lsLinesPolysInv, ...
             rxGains, usrpGain);
-
+        
         % Compute path loss. We will use the amplitude version of
         % thresholdWaveform.m without plots for debugging as the noise
         % eliminiation function.
         noiseEliminationFct = @(waveform) thresholdWaveform(abs(waveform));
-        pathLossInDb = computePathLossForOutFileDir(curOutFileDir, ...
+        [ pathLossInDb, absPathOutFile] = computePathLossForOutFileDir(curOutFileDir, ...
             usrpGain, noiseEliminationFct, powerShiftsForCali);
-
+        
         % Store the results.
         pathLossesWithGpsInfo(pathLossCounter,:) = [pathLossInDb, lat, lon];
+        absPathsOutFiles{pathLossCounter} = absPathOutFile;
         pathLossCounter = pathLossCounter+1;
     end
 end
+assert(all(~isnan(pathLossesWithGpsInfo(1:end))));
+
+disp('    Saving the results...')
+% For absPathsOutFiles, convert it to relative paths under the data folder,
+% which will already contain enough information we need.
+relPathsOutFilesUnderDataFolder = ...
+    cellfun(@(p) regexp(p, 'Data[\/\\]([a-zA-Z\d\/\\_]+.out)$', ...
+    'tokens'), absPathsOutFiles);
+pathPathLossFileToSave = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
+    'pathLossesWithGpsInfo.mat');
+save(pathPathLossFileToSave, ...
+    'pathLossesWithGpsInfo', 'relPathsOutFilesUnderDataFolder');
 
 disp('    Done!')
 
@@ -145,20 +168,59 @@ disp('    Done!')
 disp(' ')
 disp('    Plotting...')
 
-% Fix the colors to use.
-rng(1);
-% Plot.
-hPathLossesOnMap = figure; hold on;
-plot(pathLossesWithGpsInfo(:,3), pathLossesWithGpsInfo(:,2), 'w.');
-plot_google_map;
-plot3k([pathLossesWithGpsInfo(:,3), pathLossesWithGpsInfo(:,2), ...
-    pathLossesWithGpsInfo(:,1)]);
+boolsInvalidCoor = pathLossesWithGpsInfo(:,2)==0 ...
+    & pathLossesWithGpsInfo(:,3)==0;
+if any(boolsInvalidCoor)
+    warning([num2str(sum(boolsInvalidCoor)), ...
+        ' invalid (lat, lon) pairs detected (both are 0).', ...
+        ' We will ignore these points together with their path losses.']);
+end
+pathLossesWithValidGps = pathLossesWithGpsInfo(~boolsInvalidCoor,:);
 
-% Save the plot.
-pathCaliLinesFileToSave = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
+boolsInfPathloss = isinf(pathLossesWithValidGps(:,1));
+if any(boolsInfPathloss)
+    warning([num2str(sum(boolsInfPathloss)), ...
+        ' inf path loss detected.', ...
+        ' We will show these points at z=0 with different markers.']);
+end
+validPathLossesWithValidGps = pathLossesWithValidGps(~boolsInfPathloss,:);
+
+% Plot path losses on map.
+hPathLossesOnMap = figure; hold on; colormap jet;
+plot(validPathLossesWithValidGps(:,3), validPathLossesWithValidGps(:,2), 'w.');
+plot(pathLossesWithValidGps(boolsInfPathloss,3), ...
+    pathLossesWithValidGps(boolsInfPathloss,2), 'kx');
+plot_google_map('MapType','satellite');
+plot3k([validPathLossesWithValidGps(:,3), validPathLossesWithValidGps(:,2), ...
+    validPathLossesWithValidGps(:,1)], 'Marker', {'.', 12});
+% The command plot_google_map messes up the color legend of plot3k, so we
+% will have to fix it here.
+hCb = findall( allchild(hPathLossesOnMap), 'type', 'colorbar');
+hCb.Ticks = linspace(1,length(colormap),length(hCb.TickLabels));
+hold off; grid on; title('Path Losses on Map'); view(0, 90);
+xlabel('Lon'); ylabel('Lat'); zlabel('Path Loss (dB)');
+
+% Plot path losses over distance from Tx.
+validPLWithValidGPSCell = num2cell(validPathLossesWithValidGps, 2);
+distsFromTx = cellfun(@(s) 1000.*lldistkm([s(2) s(3)],[TX_LAT,TX_LON]), ...
+    validPLWithValidGPSCell);
+
+hPathLossesOverDist = figure; hold on; colormap jet;
+plot3k([distsFromTx, zeros(length(distsFromTx),1), ...
+    validPathLossesWithValidGps(:,1)], 'Marker', {'.', 6});
+grid on; title('Path Losses on Map'); view(0, 0);
+xlabel('Distance to Tx (m)'); ylabel(''); zlabel('Path Loss (dB)');
+
+% Save the plots.
+pathPathossesOnMapFileToSave = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
     'pathLossesOnMap');
-saveas(hPathLossesOnMap, [pathCaliLinesFileToSave, '.png']);
-saveas(hPathLossesOnMap, [pathCaliLinesFileToSave, '.fig']);
+saveas(hPathLossesOnMap, [pathPathossesOnMapFileToSave, '.png']);
+saveas(hPathLossesOnMap, [pathPathossesOnMapFileToSave, '.fig']);
+% Save the plot.
+pathPathLossesOverDistFileToSave = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
+    'pathLossesOverDist');
+saveas(hPathLossesOverDist, [pathPathLossesOverDistFileToSave, '.png']);
+saveas(hPathLossesOverDist, [pathPathLossesOverDistFileToSave, '.fig']);
 
 disp('    Done!')
 

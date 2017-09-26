@@ -16,6 +16,31 @@ function [ lat, lon, gpsLog ] ...
 % filename).
 gpsFileDir = rdir(fullfile(outFileDir.folder, [outFileName, '_GPS.log']), '', false);
 
+% Find the closest GPS log as an alternative if on exact match was there.
+if isempty(gpsFileDir)
+    warning(['No exact GPS log file matched with the timestamp of the input .out file: ', ...
+        fullfile(outFileDir.folder, outFileDir.name), ...
+        '. We will try to find the GPS log file in this series with the closest timestamp.'])
+    
+    % Time stamp for the current .out file.
+    timeStampOutFile = regexp(outFileName, ...
+        'measureSignal_(\d+)$', 'tokens');
+    timeStamp = str2num(timeStampOutFile{1}{1});
+    
+    gpsFilesDirs = rdir(fullfile(outFileDir.folder, '*_GPS.log'), '', false);
+    % Get the time stamps.
+    timeStampsGpsFiles = arrayfun(@(d) regexp(d.name, ...
+    'measureSignal_(\d+)_GPS.log$', 'tokens'), gpsFilesDirs);
+    % Convert the stamps (cells) to numbers.
+    timeStamps = arrayfun(@(t) str2num(t{1}{1}), timeStampsGpsFiles);
+    
+    % Find the nearest timestamp.
+    [timeDiff, idxGpsFileDir] = min(abs(timeStamps-timeStamp));
+    warning(['    GPS file found; Time diff = ', num2str(timeDiff), 's.']);
+    
+    gpsFileDir = gpsFilesDirs(idxGpsFileDir);
+end
+
 % Parse the GPS log.
 gpsLog = parseGpsLog(gpsFileDir.name);
 gpsLogSample = nmealineread(gpsLog.gpsLocation);
