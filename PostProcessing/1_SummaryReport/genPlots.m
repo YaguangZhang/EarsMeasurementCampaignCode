@@ -56,7 +56,7 @@ if exist(pathToPlotInfo, 'file')
     disp('    Found plotInfo.Mat; Loading the sample info in it...')
     load(pathToPlotInfo);
 else
-    disp('    No plotInfo.Mat found; Searching for "Series" data folders...')
+    disp('    No plotInfo.mat found; Searching for "Series" data folders...')
     % Need to actually scan the folder and find the sample folders.
     allSeriesParentDirs = rdir(fullfile(ABS_PATH_TO_DATA, '**', '*'), ...
         'regexp(name, ''(_LargeScale$)|(_SIMO$)|(_Conti$)'')');

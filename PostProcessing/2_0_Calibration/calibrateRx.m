@@ -80,7 +80,7 @@ if ~FLAG_USE_FILTERED_OUTPUT_FILES
 end
 
 % Regression method to use, e.g. 'robustfit', 'polyfit', and 'regress'.
-LINEAR_REGRESSION_METHOD = 'regress';
+LINEAR_REGRESSION_METHOD = 'robustfit';
 
 %% Before Calibration
 
@@ -202,27 +202,27 @@ for idxDataset = 1:numDatasets
             num2str(curNumMeas)]);
         
         % Prepare the samples for calibration.
-        curSeries = calData{idxDataset}{idxCurMeas};
+        curSignal = calData{idxDataset}{idxCurMeas};
         % Discard the first numStartSampsToDiscard of samples.
-        curSeries = curSeries((numStartSampsToDiscard+1):end);
+        curSignal = curSignal((numStartSampsToDiscard+1):end);
         % Further more, only keep the middle part for calibration.
         numSampsToKeep = ceil(timeLengthAtCenterToUse*Fs);
-        numSampsCurSeries = length(curSeries);
+        numSampsCurSeries = length(curSignal);
         if numSampsToKeep > numSampsCurSeries
             warning('There are not enough samples to keep. We will use all remaining ones.');
         else
             idxRangeToKeep = floor(0.5.*numSampsCurSeries ...
                 + [-1,1].*numSampsToKeep./2);
-            curSeries = curSeries(idxRangeToKeep(1):idxRangeToKeep(2));
+            curSignal = curSignal(idxRangeToKeep(1):idxRangeToKeep(2));
         end
         % Make sure we end up with even number of samples.
-        if mod(length(curSeries),2)==1
-            curSeries = curSeries(1:(end-1));
+        if mod(length(curSignal),2)==1
+            curSignal = curSignal(1:(end-1));
         end
         
         % Before calibration, plot the PSD of the input samples (after
         % range limitation but before noise elimination).
-        X0 = curSeries;
+        X0 = curSignal;
         L0 = length(X0);
         % Apply a L-point minimum 4-term Blackman-Harris window to the
         % signal before fft.
@@ -265,22 +265,22 @@ for idxDataset = 1:numDatasets
         % each signal vector to eliminate corss-correlation and system
         % noise.
         [signalReal, ~, hNoiseSigmaReal] = ...
-            thresholdWaveform(real(curSeries), true);
+            thresholdWaveform(real(curSignal), true);
         [signalImag, ~, hNoiseSigmaImag] = ...
-            thresholdWaveform(imag(curSeries), true);
+            thresholdWaveform(imag(curSignal), true);
         % Update: it makes more sense to eliminate pts according to the
         % amplitude of the signal, instead of doing it separately for the
         % real and image parts.
         [~, boolsEliminatedPts, hNoiseSigmaAmp] = ...
-            thresholdWaveform(abs(curSeries), true);
-        curSeriesEliminated = curSeries;
-        curSeriesEliminated(boolsEliminatedPts) = 0;
+            thresholdWaveform(abs(curSignal), true);
+        curSignalEliminated = curSignal;
+        curSignalEliminated(boolsEliminatedPts) = 0;
         
         % Depending on the flag, choose to use which version of
         % noise-eliminated signal (via real and imaginary parts separately,
         % or via the amplitude as a whole).
         if FLAG_NOISE_ELI_VIA_AMP
-            curCalDataThr{idxCurMeas} = curSeriesEliminated;
+            curCalDataThr{idxCurMeas} = curSignalEliminated;
         else
             % Compute the complex FFT of the resulted signal; Store it in
             % the cell curCalDataThr for debugging.
@@ -297,7 +297,7 @@ for idxDataset = 1:numDatasets
         % FFT results.
         Y = fftshift(fft(X));
         % Frequency domain.
-        f = (-L/2:L/2-1)*(Fs/L);
+        f = ((-L/2:L/2-1)*(Fs/L))';
         idxDC = L/2+1;
         % PSD.
         powerSpectralDen = abs(Y).^2/L;
@@ -330,22 +330,23 @@ for idxDataset = 1:numDatasets
         end
         
         % Compute the power.
-        indicesFPassed = find(abs(f)<=maxFreqPassed ...
-            & abs(f)>=minFreqPassed);
+        boolsFPassed = abs(f)<=maxFreqPassed ...
+            & abs(f)>=minFreqPassed;
         % Compute the power by integral. Note that we will always discard
-        % the DC component here (may be passed by the filters).
+        % the DC component here (although it may be passed by the filters).
         psdPassed = powerSpectralDen;
+        psdPassed(~boolsFPassed) = 0;
         psdPassed(idxDC) = 0;
-        psdPassed = psdPassed(indicesFPassed);
-        curCalculatedP(idxCurMeas) = trapz(f(indicesFPassed), psdPassed);
+        curCalculatedP(idxCurMeas) = trapz(f, psdPassed);
         % For the noise, we compute the power right outside of the LPF but
         % limit the integral range to be as wide as the LPF. That is, as
         % the reference noise power, compute the power from maxFreqPassed
         % to 2*maxFreqPassed in both the positive and negative parts.
-        indicesFFiltered = setdiff(find(abs(f)<=2*maxFreqPassed), ...
-            indicesFPassed);
-        psdFiltered = powerSpectralDen(indicesFFiltered);
-        powerFiltered = trapz(f(indicesFFiltered), psdFiltered);
+        boolsFFiltered = abs(f)<=2*maxFreqPassed & (~boolsFPassed);
+        psdFiltered = powerSpectralDen;
+        psdFiltered(~boolsFFiltered) = 0;
+        psdFiltered(idxDC) = 0;
+        powerFiltered = trapz(f, psdFiltered);
         curEstimatedSnrs(idxCurMeas) = ...
             curCalculatedP(idxCurMeas)/powerFiltered;
         
@@ -436,7 +437,7 @@ for idxDataset = 1:numDatasets
     end
     calDataThresholded{idxDataset} = curCalDataThr;
     % Change to dB and remove the gain from the Gnu Radio.
-    calculatedPowers{idxDataset} = 10.*log(curCalculatedP)./log(10) ...
+    calculatedPowers{idxDataset} = 10.*log10(curCalculatedP) ...
         - rxGains(idxDataset);
     estimatedSnrs{idxDataset} = curEstimatedSnrs;
 end

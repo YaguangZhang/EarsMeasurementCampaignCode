@@ -68,17 +68,17 @@ else
         'first and retry.']);
 end
 
+disp('    Done!')
+
 %% Compute and Plot Calibration Lines
+
+disp(' ')
+disp('    Plotting...')
 
 % Because all the lines are linear, two points are enough for plotting.
 [xRangeToShow, yRangeToShow] = deal([-100, 0]);
 powerShiftsForCali = genCalibrationFct(lsLinesPolysInv, rxGains, ...
     gains_needed);
-
-disp('    Done!')
-
-disp(' ')
-disp('    Plotting...')
 
 % Fix the colors to use.
 rng(1);

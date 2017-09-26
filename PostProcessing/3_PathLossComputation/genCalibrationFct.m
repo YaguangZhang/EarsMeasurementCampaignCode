@@ -16,12 +16,13 @@ function [ powerShiftsForCali ] ...
 %      are) needed.
 %  Output:
 %    - powerShiftsForCali
-%      Essentially b in the linear polynomial, since we will force it to
-%      use 1 as its slope.
+%      Essentially b in the linear polynomial:
+%          measuredPowerInDb = caluculatedPowerInDb + b,
+%      since we will force it to use 1 as its slope.
 %
 % Yaguang Zhang, Purdue, 09/14/2017
 
-% lsLinesPolysInv{1} is for 
+% lsLinesPolysInv{1} is for the first calibration data set.
 powerShiftsForCali = ((gains-rxGains(2)).*lsLinesPolysInv{1}(2) ...
     +(rxGains(1)-gains).*lsLinesPolysInv{2}(2)) ...
     ./(rxGains(1)-rxGains(2));
