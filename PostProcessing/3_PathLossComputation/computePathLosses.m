@@ -1,5 +1,5 @@
 % COMPUTEPATHLOSSES Compute the path losses in dB for all the locations
-% covered by our measurement data set.
+% covered by our measurement data set (excluding the Conti case).
 %
 % We will consider both the TX calibration and the antenna normalization.
 % The results from
@@ -11,6 +11,9 @@
 %     Output file plotInfo.mat contains the information for all the
 %     measurement data files found locally on the machine.
 % will be reused.
+%
+% Note that we only load and process the LargeScale and SIMO measurements
+% in this script.
 %
 % Yaguang Zhang, Purdue, 09/26/2017
 
@@ -46,7 +49,7 @@ NUM_SIGMA_FOR_THRESHOLD = 3.5;
 % Transmitter location.
 TX_LAT = 38.983899;
 TX_LON = -76.486682;
-    
+
 %% Before Processing the Data
 
 disp(' ----------------------- ')
@@ -97,8 +100,12 @@ for idxSeries = 1:numSeries
     disp(['        Scanning series folder ', num2str(idxSeries), '/', ...
         num2str(numSeries), '...']);
     
+    % Here it doesn't make much sense to load the conti measurements and
+    % come up with only 1 path loss value for each long sequence. We will
+    % deal with them separately with another script.
+    regexPattern = '\d+_(LargeScale|SIMO)';
     [allOutFilesDirs{idxSeries}, allGpsFilesDirs{idxSeries}] = ...
-        loadFilesFromSeriesDir(allSeriesDirsArray(idxSeries));
+        loadFilesFromSeriesDir(allSeriesDirsArray(idxSeries), regexPattern);
 end
 
 disp('    Done!')
@@ -131,7 +138,7 @@ for idxSeries = 1:numSeries
         [lat, lon, gpsLog] = fetchGpsForOutFileDir(curOutFileDir);
         
         % Compute b for the calibration line corresponding to the RX gain.
-        usrpGain = str2num(gpsLog.rxChannelGain);
+        usrpGain = str2double(gpsLog.rxChannelGain);
         powerShiftsForCali = genCalibrationFct( lsLinesPolysInv, ...
             rxGains, usrpGain);
         
@@ -168,7 +175,7 @@ disp('    Done!')
 disp(' ')
 disp('    Plotting...')
 
-boolsInvalidCoor = pathLossesWithGpsInfo(:,2)==0 ...
+boolsInvalidCoor = pathLossesWithGpsInfo(boolsMeasToShow,2)==0 ...
     & pathLossesWithGpsInfo(:,3)==0;
 if any(boolsInvalidCoor)
     warning([num2str(sum(boolsInvalidCoor)), ...
@@ -197,7 +204,8 @@ plot3k([validPathLossesWithValidGps(:,3), validPathLossesWithValidGps(:,2), ...
 % will have to fix it here.
 hCb = findall( allchild(hPathLossesOnMap), 'type', 'colorbar');
 hCb.Ticks = linspace(1,length(colormap),length(hCb.TickLabels));
-hold off; grid on; title('Path Losses on Map'); view(0, 90);
+hold off; grid on; view(0, 90);
+title('Path Losses on Map (Large Scale & SIMO)');
 xlabel('Lon'); ylabel('Lat'); zlabel('Path Loss (dB)');
 
 % Plot path losses over distance from Tx.
@@ -208,7 +216,13 @@ distsFromTx = cellfun(@(s) 1000.*lldistkm([s(2) s(3)],[TX_LAT,TX_LON]), ...
 hPathLossesOverDist = figure; hold on; colormap jet;
 plot3k([distsFromTx, zeros(length(distsFromTx),1), ...
     validPathLossesWithValidGps(:,1)], 'Marker', {'.', 6});
-grid on; title('Path Losses on Map'); view(0, 0);
+curAxis = axis;
+axis([min(distsFromTx)-10, max(distsFromTx)+100, curAxis(3:6)]);
+view(0, 0); set(gca, 'XScale', 'log'); grid on;
+newXTicks = [10,100,200,500,1000];
+set(gca, 'XTickLabels',newXTicks);
+set(gca, 'XTick',newXTicks);
+title('Path Losses over Distance (Large Scale & SIMO)');
 xlabel('Distance to Tx (m)'); ylabel(''); zlabel('Path Loss (dB)');
 
 % Save the plots.
