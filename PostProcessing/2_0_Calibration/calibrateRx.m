@@ -40,8 +40,13 @@ measPowers = {[-19;-24;-29;-34;-39;-44;-49;-54;-59], ...
 FLAG_NOISE_ELI_VIA_AMP = true;
 
 % Manually ignore some of the measurements.
+%   Update 20170927 - Remove point 1 from set 2 - Quote from Professor
+%   Anderson: "I would remove the first point from set #2 (Measured = -40,
+%   Calculated = -47), as I'm certain we were driving the receiver into
+%   compression (a non-linear area where a 1dB change in input results in
+%   less than 1dB change in output).  "
 BOOLS_MEAS_TO_FIT = {[1 1 1 1 1 1 1 0 0], ...
-    [1 1 1 1 1 1 1]};
+    [0 1 1 1 1 1 1]};
 
 % Sample rate used for GnuRadio.
 Fs = 1.04 * 10^6;
@@ -79,8 +84,9 @@ if ~FLAG_USE_FILTERED_OUTPUT_FILES
     maxFreqPassed = 20000;
 end
 
-% Regression method to use, e.g. 'robustfit', 'polyfit', and 'regress'.
-LINEAR_REGRESSION_METHOD = 'robustfit';
+% Regression method to use, e.g. built-in: 'robustfit', 'polyfit',
+% 'regress', and external: 'linortfit2' (Orthogonal Linear Regression).
+LINEAR_REGRESSION_METHOD = 'linortfit2';
 
 %% Before Calibration
 
@@ -523,6 +529,11 @@ for idxDataset = 1:numDatasets
             % To go with the output order for polyfit.
             lsLinePoly = lsLinePoly(end:-1:1);
             lsLinePolyInv = lsLinePolyInv(end:-1:1);
+        case 'linortfit2'
+            % Linear fitting.
+            lsLinePoly = linortfit2(xsToFit, ysToFit);
+            % For future use & comparison.
+            lsLinePolyInv = linortfit2(ysToFit, xsToFit);
         otherwise
             error('Linear regression method not supported!')
     end

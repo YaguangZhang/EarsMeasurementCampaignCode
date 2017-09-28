@@ -61,7 +61,7 @@ relativeRangeForNoise = [0.875, 0.975];
 try
     Fs = evalin('base', 'Fs');
 catch
-    warning('GnuRadio sample frequency not found in the base workspace.')
+    warning('GnuRadio sample frequency Fs not found in the base workspace.')
     warning('Will use the default value 1.04 * 10^6.')
     Fs = 1.04 * 10^6;
 end

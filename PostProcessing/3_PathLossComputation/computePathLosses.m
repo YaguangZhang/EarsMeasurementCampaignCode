@@ -50,11 +50,14 @@ NUM_SIGMA_FOR_THRESHOLD = 3.5;
 TX_LAT = 38.983899;
 TX_LON = -76.486682;
 
+% TX power into upconverter in dBm.
+txPower  = -8;
+
 %% Before Processing the Data
 
-disp(' ----------------------- ')
-disp('  computePathLosses')
-disp(' ----------------------- ')
+disp(' ------------------- ')
+disp('  computePathLosses ')
+disp(' ------------------- ')
 
 % Create directories if necessary.
 if exist(ABS_PATH_TO_SAVE_PLOTS, 'dir')~=7
@@ -114,7 +117,7 @@ disp('    Done!')
 
 disp(' ')
 disp('    Computing path losses...')
-
+    
 % Compute the path losses and save them into a matrix together with the GPS
 % info.
 numOutFiles = sum(cellfun(@(d) length(d), allOutFilesDirs));
@@ -146,7 +149,8 @@ for idxSeries = 1:numSeries
         % thresholdWaveform.m without plots for debugging as the noise
         % eliminiation function.
         noiseEliminationFct = @(waveform) thresholdWaveform(abs(waveform));
-        [ pathLossInDb, absPathOutFile] = computePathLossForOutFileDir(curOutFileDir, ...
+        [ pathLossInDb, absPathOutFile] ...
+            = computePathLossForOutFileDir(curOutFileDir, ...
             usrpGain, noiseEliminationFct, powerShiftsForCali);
         
         % Store the results.
@@ -175,7 +179,7 @@ disp('    Done!')
 disp(' ')
 disp('    Plotting...')
 
-boolsInvalidCoor = pathLossesWithGpsInfo(boolsMeasToShow,2)==0 ...
+boolsInvalidCoor = pathLossesWithGpsInfo(:,2)==0 ...
     & pathLossesWithGpsInfo(:,3)==0;
 if any(boolsInvalidCoor)
     warning([num2str(sum(boolsInvalidCoor)), ...
@@ -197,6 +201,7 @@ hPathLossesOnMap = figure; hold on; colormap jet;
 plot(validPathLossesWithValidGps(:,3), validPathLossesWithValidGps(:,2), 'w.');
 plot(pathLossesWithValidGps(boolsInfPathloss,3), ...
     pathLossesWithValidGps(boolsInfPathloss,2), 'kx');
+hTx = plot(TX_LON, TX_LAT, '^b');
 plot_google_map('MapType','satellite');
 plot3k([validPathLossesWithValidGps(:,3), validPathLossesWithValidGps(:,2), ...
     validPathLossesWithValidGps(:,1)], 'Marker', {'.', 12});
@@ -204,7 +209,7 @@ plot3k([validPathLossesWithValidGps(:,3), validPathLossesWithValidGps(:,2), ...
 % will have to fix it here.
 hCb = findall( allchild(hPathLossesOnMap), 'type', 'colorbar');
 hCb.Ticks = linspace(1,length(colormap),length(hCb.TickLabels));
-hold off; grid on; view(0, 90);
+hold off; grid on; view(0, 90); legend(hTx, 'TX');
 title('Path Losses on Map (Large Scale & SIMO)');
 xlabel('Lon'); ylabel('Lat'); zlabel('Path Loss (dB)');
 
