@@ -1,4 +1,5 @@
-function [ hPat3DRef ] = plotRefPat3D( patAz, patEl)
+function [ hPat3DRef ] = plotRefPat3D( patAz, patEl, ...
+    FLAG_USE_MATLAB_AZEL_CONVENTION)
 %PLOTREFPAT3D Plot in 3D the reference antenna pattern.
 %
 % Inputs:
@@ -21,6 +22,21 @@ function [ hPat3DRef ] = plotRefPat3D( patAz, patEl)
 %
 % Yaguang Zhang, Purdue, 10/03/2017
 
+if nargin<3
+    % The Matlab convention about Azimuth and Elevation:
+    %
+    %   The azimuth angle of a vector is the angle between the x-axis and
+    %   the orthogonal projection of the vector onto the xy plane. The
+    %   angle is positive in going from the x axis toward the y axis.
+    %   Azimuth angles lie between –180 and 180 degrees. The elevation
+    %   angle is the angle between the vector and its orthogonal projection
+    %   onto the xy-plane. The angle is positive when going toward the
+    %   positive z-axis from the xy plane. These definitions assume the
+    %   boresight direction is the positive x-axis.
+    %
+    FLAG_USE_MATLAB_AZEL_CONVENTION = true;
+end
+
 AZS = [patAz.azs; zeros(length(patEl.azs),1)];
 ELS = [zeros(length(patAz.els),1); patEl.els];
 AMPS = [patAz.amps; patEl.amps];
@@ -30,22 +46,32 @@ AMPSDB = 10.*log10(AMPS);
 minAmpDb = min(AMPSDB(:));
 AMPSDB = AMPSDB - minAmpDb;
 
-% Convert from the polar coordinate system to the Cartesian system for
-% plotting. We have
-%    x   = amp * cosd(el) * sind(360-az)
-%     y  = amp * cosd(el) * cosd(360-az)
-%      z = amp * sind(el)
-X = AMPSDB .* cosd(ELS) .* sind(360-AZS);
-Y = AMPSDB .* cosd(ELS) .* cosd(360-AZS);
-Z = AMPSDB .* sind(ELS);
+if FLAG_USE_MATLAB_AZEL_CONVENTION
+    [X,Y,Z] = sph2cart(deg2rad(AZS),deg2rad(ELS),AMPSDB);
+else
+    % Convert from the polar coordinate system to the Cartesian system for
+    % plotting. We have
+    %    x   = amp * cosd(el) * sind(360-az)
+    %     y  = amp * cosd(el) * cosd(360-az)
+    %      z = amp * sind(el)
+    X = AMPSDB .* cosd(ELS) .* sind(360-AZS);
+    Y = AMPSDB .* cosd(ELS) .* cosd(360-AZS);
+    Z = AMPSDB .* sind(ELS);
+end
 
 hPat3DRef = figure('units','normalized', ...
     'outerposition',[0.1 0.05 0.8 0.9]);
 colormap jet;
 plot3k([X,Y,Z], 'ColorData', AMPSDB);
-xlabel('x (to antenna''s right-hand side)');
-ylabel('y (to front)');
-zlabel('z (to top');
+if FLAG_USE_MATLAB_AZEL_CONVENTION
+    xlabel('x (to front)');
+    ylabel('y (to antenna''s left-hand side)');
+    zlabel('z (to top)');
+else
+    xlabel('x (to antenna''s right-hand side)');
+    ylabel('y (to front)');
+    zlabel('z (to top)');
+end
 title({'Reference Antenna 3D Radiation Pattern'; ...
     '(Amplitude in dB Relative to the Minimum Value)'});
 axis equal; view(135,30);

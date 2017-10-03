@@ -59,7 +59,7 @@ xlabel('Elevation'); ylabel('Normalized Amplitude (dB)');
 %% 3D Plot
 
 % Plot the interpolation results.
-numPtsPerDim = 200;
+numPtsPerDim = 1000;
 hInterPat3DOnLineLinear = plotInterPat3D( patAz, patEl, ...
     'OnLine', false, numPtsPerDim);
 set(hInterPat3DOnLineLinear, 'Name', 'interPat3DOnLineLinear');
