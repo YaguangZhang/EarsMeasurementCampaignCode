@@ -39,19 +39,13 @@ ABS_PATH_TO_DATA_INFO_FILE = fullfile(ABS_PATH_TO_EARS_SHARED_FOLDER, ...
     'PostProcessingResults', 'SummaryReport', 'plots', 'plotInfo.mat');
 ABS_PATH_TO_CALI_LINES_FILE = fullfile(ABS_PATH_TO_EARS_SHARED_FOLDER, ...
     'PostProcessingResults', 'Calibration', 'lsLinesPolys.mat');
-
-% Sample rate used for GnuRadio.
-Fs = 1.04 * 10^6;
+ABS_PATH_TO_ANT_PAT_FILE = fullfile(ABS_PATH_TO_EARS_SHARED_FOLDER, ...
+    'PostProcessingResults', 'AntennaPattern', 'antennaPattern.mat');
+ABS_PATH_TO_TX_INFO_LOGS_FILE= fullfile(ABS_PATH_TO_EARS_SHARED_FOLDER, ...
+    'PostProcessingResults', 'PathLossComputation', 'txInfoLogs.mat');
 
 % For setting the threshold during the noise elimination.
 NUM_SIGMA_FOR_THRESHOLD = 3.5;
-
-% Transmitter location.
-TX_LAT = 38.983899;
-TX_LON = -76.486682;
-
-% TX power into upconverter in dBm.
-txPower  = -8;
 
 %% Before Processing the Data
 
@@ -67,21 +61,40 @@ end
 %% Get Info for Measurement Data Files and Calibration Polynomials
 
 disp(' ')
-disp('    Loading results from plotInfo.m and calibrateRx.m ...')
+disp('    Loading results from: ')
+disp('      - plotInfo.m')
+disp('      - calibrateRx.m')
+disp('      - antennaPattern.m')
+disp('      - loadMeasCampaignInfo.m')
 
 assert(exist(ABS_PATH_TO_DATA_INFO_FILE, 'file')==2, ...
     'Couldn''t find plotInfo.mat! Please run PostProcessing/1_SummaryReport/genPlots.m first.');
 assert(exist(ABS_PATH_TO_CALI_LINES_FILE, 'file')==2, ...
-    'Couldn''t find lsLinesPolys.mat! Please run PostProcessing/2_0_Calibration/calibrateRx.m  first.');
+    'Couldn''t find lsLinesPolys.mat! Please run PostProcessing/2_0_Calibration/calibrateRx.m first.');
+assert(exist(ABS_PATH_TO_ANT_PAT_FILE, 'file')==2, ...
+    'Couldn''t find antennaPattern.mat! Please run PostProcessing/3_AntennaPattern/fetchAntennaPattern.m first.');
+assert(exist(ABS_PATH_TO_TX_INFO_LOGS_FILE, 'file')==2, ...
+    'Couldn''t find txInfoLogs.mat! Please run PostProcessing/4_PathLossComputation/loadMeasCampaignInfo.m first.');
 
 % The data have been processed before and the result files have been found.
-disp('    Found plotInfo.mat and lsLinesPolys.mat');
+disp('    Found all .mat files required.');
 disp('        Loading the results...')
 % Get 'allSeriesParentDirs' and 'allSeriesDirs'.
 load(ABS_PATH_TO_DATA_INFO_FILE);
 % Get 'lsLinesPolys', 'lsLinesPolysInv', 'fittedMeaPs', 'fittedCalPs', and
 % 'rxGains'.
 load(ABS_PATH_TO_CALI_LINES_FILE);
+% Get 'pat28GAzNorm', and 'pat28GElNorm'.
+load(ABS_PATH_TO_ANT_PAT_FILE);
+
+% Get records of the TxInfo.txt files (among other contant parameters for
+% the measurement campaign, e.g. F_S, TX_LAT, TX_LON, and TX_POWER_DBM):
+% 'TX_INFO_LOGS' and 'TX_INFO_LOGS_ABS_PAR_DIRS'.
+load(ABS_PATH_TO_TX_INFO_LOGS_FILE);
+% Sample rate used for GnuRadio. Needed by computePathLossForOutFileDir.m.
+Fs = F_S;
+% TX power into upconverter in dBm.
+txPower  = TX_POWER_DBM;
 
 disp('    Done!')
 
@@ -117,12 +130,15 @@ disp('    Done!')
 
 disp(' ')
 disp('    Computing path losses...')
-    
+
 % Compute the path losses and save them into a matrix together with the GPS
 % info.
 numOutFiles = sum(cellfun(@(d) length(d), allOutFilesDirs));
-% More specifically, each row is a [path loss (dB), lat, lon] array.
-pathLossesWithGpsInfo = nan(numOutFiles, 3);
+% More specifically, each row is a [path loss (dB), lat, lon, latM, lonM]
+% array, where (lat, lon) is the GPS coordinates for the individule .out
+% file, while (latM, latM) is the average (via median) coordinates for all
+% the locked GPS samples on that site.
+pathLossesWithGpsInfo = nan(numOutFiles, 5);
 pathLossCounter = 1;
 % Also save the meta info needed to map the path loss back to the
 % measurements. We choose to save the full file path to the .out file for
@@ -133,28 +149,60 @@ for idxSeries = 1:numSeries
         num2str(numSeries), '...']);
     
     numOutFileCurSeries = length(allOutFilesDirs{idxSeries});
+    if numOutFileCurSeries>0
+        % Get the median RX (lat, lon, alt) for all the GPS samples in this
+        % series, which will be needed for the antenna gain calculation.
+        [latM, lonM, altM] = fetchMedianGpsForSeriesDir(...
+            allOutFilesDirs{idxSeries}.folder);
+    end
     for idxOutFile = 1:numOutFileCurSeries
         disp(['            Outfile ', num2str(idxOutFile), '/', ...
             num2str(numOutFileCurSeries), '...']);
         
         curOutFileDir = allOutFilesDirs{idxSeries}(idxOutFile);
-        [lat, lon, gpsLog] = fetchGpsForOutFileDir(curOutFileDir);
+        [lat, lon, alt, gpsLog] = fetchGpsForOutFileDir(curOutFileDir);
         
         % Compute b for the calibration line corresponding to the RX gain.
         usrpGain = str2double(gpsLog.rxChannelGain);
         powerShiftsForCali = genCalibrationFct( lsLinesPolysInv, ...
             rxGains, usrpGain);
         
-        % Compute path loss. We will use the amplitude version of
-        % thresholdWaveform.m without plots for debugging as the noise
-        % eliminiation function.
+        % Compute path loss (without considering the antenna gain). We will
+        % use the amplitude version of thresholdWaveform.m without plots
+        % for debugging as the noise eliminiation function.
         noiseEliminationFct = @(waveform) thresholdWaveform(abs(waveform));
         [ pathLossInDb, absPathOutFile] ...
             = computePathLossForOutFileDir(curOutFileDir, ...
             usrpGain, noiseEliminationFct, powerShiftsForCali);
         
-        % Store the results.
-        pathLossesWithGpsInfo(pathLossCounter,:) = [pathLossInDb, lat, lon];
+        % Fetch the measurement campaign meta records.
+        [absCurParDir, curSeries] = fileparts(curOutFileDir.folder);
+        idxParDir = find(cellfun(@(d) strcmp(d, absCurParDir), ...
+            TX_INFO_LOGS_ABS_PAR_DIRS));
+        idxCurSer = str2double(curSeries((length('Series_')+1):end));
+        assert(length(idxParDir)==1, ...
+            'More than 1 parent folder match with the meta information of the current Series data.');
+        curTxInfoLog = TX_INFO_LOGS{idxParDir}(idxCurSer);
+        assert(curTxInfoLog.seriesNum==idxCurSer, ...
+            'The series index number in the matched Tx info log does not agree with idxCurSer.');
+        
+        % Compute the antenna gains.
+        %    function [ gain ] = computeAntGain(lat0, lon0, alt0, ...
+        %        az0, el0, ...
+        %         lat, lon, alt, ...
+        %        antPatAz, antPatEl)
+        txGain = computeAntGain(TX_LAT, TX_LON, TX_HEIGHT_M, ...
+            curTxInfoLog.txAz, curTxInfoLog.txEl, ...
+            latM, lonM, altM, ...
+            pat28GAzNorm, pat28GElNorm);
+        rxGain = computeAntGain(latM, lonM, altM, ...
+            curTxInfoLog.rxAz, curTxInfoLog.rxEl, ...
+            TX_LAT, TX_LON, TX_HEIGHT_M, ...
+            pat28GAzNorm, pat28GElNorm);
+        
+        % Store the results, considering the antenna gains.
+        pathLossesWithGpsInfo(pathLossCounter,:) ...
+            = [pathLossInDb + txGain + rxGain, lat, lon, latM, lonM];
         absPathsOutFiles{pathLossCounter} = absPathOutFile;
         pathLossCounter = pathLossCounter+1;
     end
@@ -175,7 +223,7 @@ save(pathPathLossFileToSave, ...
 disp('    Done!')
 
 %% Plot
--
+
 disp(' ')
 disp('    Plotting...')
 
@@ -196,14 +244,31 @@ if any(boolsInfPathloss)
 end
 validPathLossesWithValidGps = pathLossesWithValidGps(~boolsInfPathloss,:);
 
-% Plot path losses on map.
-hPathLossesOnMap = figure; hold on; colormap jet;
+% Plot path losses on map with individual GPS coordinates.
+hPathLossesOnMapIndi = figure; hold on; colormap jet;
 plot(validPathLossesWithValidGps(:,3), validPathLossesWithValidGps(:,2), 'w.');
 plot(pathLossesWithValidGps(boolsInfPathloss,3), ...
     pathLossesWithValidGps(boolsInfPathloss,2), 'kx');
 hTx = plot(TX_LON, TX_LAT, '^b');
 plot_google_map('MapType','satellite');
 plot3k([validPathLossesWithValidGps(:,3), validPathLossesWithValidGps(:,2), ...
+    validPathLossesWithValidGps(:,1)], 'Marker', {'.', 12});
+% The command plot_google_map messes up the color legend of plot3k, so we
+% will have to fix it here.
+hCb = findall( allchild(hPathLossesOnMapIndi), 'type', 'colorbar');
+hCb.Ticks = linspace(1,length(colormap),length(hCb.TickLabels));
+hold off; grid on; view(0, 90); legend(hTx, 'TX');
+title('Path Losses on Map (Large Scale & SIMO)');
+xlabel('Lon'); ylabel('Lat'); zlabel('Path Loss (dB)');
+
+% Plot path losses on map with average GPS coordinates.
+hPathLossesOnMap = figure; hold on; colormap jet;
+plot(validPathLossesWithValidGps(:,5), validPathLossesWithValidGps(:,4), 'w.');
+plot(pathLossesWithValidGps(boolsInfPathloss,3), ...
+    pathLossesWithValidGps(boolsInfPathloss,2), 'kx');
+hTx = plot(TX_LON, TX_LAT, '^b');
+plot_google_map('MapType','satellite');
+plot3k([validPathLossesWithValidGps(:,5), validPathLossesWithValidGps(:,4), ...
     validPathLossesWithValidGps(:,1)], 'Marker', {'.', 12});
 % The command plot_google_map messes up the color legend of plot3k, so we
 % will have to fix it here.
@@ -231,11 +296,14 @@ title('Path Losses over Distance (Large Scale & SIMO)');
 xlabel('Distance to Tx (m)'); ylabel(''); zlabel('Path Loss (dB)');
 
 % Save the plots.
+pathPathossesOnMapIndiFileToSave = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
+    'pathLossesOnMapIndi');
+saveas(hPathLossesOnMapIndi, [pathPathossesOnMapIndiFileToSave, '.png']);
+saveas(hPathLossesOnMapIndi, [pathPathossesOnMapIndiFileToSave, '.fig']);
 pathPathossesOnMapFileToSave = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
     'pathLossesOnMap');
 saveas(hPathLossesOnMap, [pathPathossesOnMapFileToSave, '.png']);
 saveas(hPathLossesOnMap, [pathPathossesOnMapFileToSave, '.fig']);
-% Save the plot.
 pathPathLossesOverDistFileToSave = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
     'pathLossesOverDist');
 saveas(hPathLossesOverDist, [pathPathLossesOverDistFileToSave, '.png']);

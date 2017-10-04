@@ -2,7 +2,8 @@ function [ pathLossInDb ] ...
     = computePathLossForCurSignal(curSignal, txPower, ...
     rxGain, noiseEliminationFct, powerShiftsForCali, FlagCutHead)
 %COMPUTEPATHLOSSFORCURSIGNAL Compute the path loss for the input complex
-%array curSignal.
+%array curSignal. Note that here antGain = 0, i.e. the path actually includes the TX & RX
+%antennas, because antGain will depend on the TX & RX setups.
 %
 % Inputs:
 %   - curSignal
@@ -70,6 +71,15 @@ catch
     warning('GnuRadio sample frequency Fs not found in the base workspace.')
     warning('Will use the default value 1.04 * 10^6.')
     Fs = 1.04 * 10^6;
+end
+
+% Sample rate used for GnuRadio.
+try
+    txInfoLogs = evalin('base', 'TX_INFO_LOGS');
+catch
+    warning('Data from TxInfo.txt files TX_INFO_LOGS not found in the base workspace.')
+    warning('Will load the data via script loadMeasCampaignInfo.m.')
+    loadMeasCampaignInfo;
 end
 
 %% LPF

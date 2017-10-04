@@ -1,10 +1,10 @@
-function [ lat, lon, gpsLog ] ...
+function [ lat, lon, alt, gpsLog ] ...
     = fetchGpsForOutFileDir( outFileDir )
 %FETCHGPSFOROUTFILEDIR Find the cooresponding GPS log file and fetch the
 %coordinates stored in it for the .out file specified by the input dir
 %struct outFileDir.
 %
-% Outputs (lat, lon) is the resulted coordinate and gpsLog is the GPS
+% Outputs (lat, lon, alt) is the resulted coordinate and gpsLog is the GPS
 % information struct containing all the fields stored in the GPS log file.
 %
 % Yaguang Zhang, Purdue, 09/26/2017
@@ -47,6 +47,7 @@ gpsLogSample = nmealineread(gpsLog.gpsLocation);
 
 lat = gpsLogSample.latitude;
 lon = gpsLogSample.longitude;
+alt = gpsLogSample.altitude;
 
 % Add a minus sign if it is W or S.
 if(isW(gpsLog.gpsLocation))
