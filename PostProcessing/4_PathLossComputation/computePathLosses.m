@@ -17,7 +17,7 @@
 %
 % Yaguang Zhang, Purdue, 09/26/2017
 
-clear; clc; close all;
+clear; clc; close all; dbstop if error;
 
 %% Configurations
 
@@ -27,8 +27,10 @@ cd(fileparts(mfilename('fullpath')));
 addpath(fullfile(pwd));
 cd('..'); setPath;
 
-% We also need the function thresholdWaveform.m for noise elimination.
+% We will need the function thresholdWaveform.m for noise elimination.
 addpath(fullfile(pwd, '2_0_Calibration'));
+% We also need the function antPatInter.m for antenna gain calculation.
+addpath(fullfile(pwd, '3_AntennaPattern'));
 
 % Configure other paths accordingly.
 ABS_PATH_TO_SAVE_PLOTS = fullfile(ABS_PATH_TO_EARS_SHARED_FOLDER, ...
@@ -147,20 +149,20 @@ absPathsOutFiles = cell(numOutFiles, 1);
 for idxSeries = 1:numSeries
     disp(['        Processing series ', num2str(idxSeries), '/', ...
         num2str(numSeries), '...']);
+    disp(['            Folder: ', allSeriesDirsArray(idxSeries).name]);
     
     numOutFileCurSeries = length(allOutFilesDirs{idxSeries});
-    if numOutFileCurSeries>0
-        % Get the median RX (lat, lon, alt) for all the GPS samples in this
-        % series, which will be needed for the antenna gain calculation.
-        [latM, lonM, altM] = fetchMedianGpsForSeriesDir(...
-            allOutFilesDirs{idxSeries}.folder);
-    end
     for idxOutFile = 1:numOutFileCurSeries
         disp(['            Outfile ', num2str(idxOutFile), '/', ...
             num2str(numOutFileCurSeries), '...']);
         
         curOutFileDir = allOutFilesDirs{idxSeries}(idxOutFile);
         [lat, lon, alt, gpsLog] = fetchGpsForOutFileDir(curOutFileDir);
+        
+        % Get the median RX (lat, lon, alt) for all the GPS samples in this
+        % series, which will be needed for the antenna gain calculation.
+        [latM, lonM, altM] = fetchMedianGpsForSeriesDir(...
+            curOutFileDir.folder);
         
         % Compute b for the calibration line corresponding to the RX gain.
         usrpGain = str2double(gpsLog.rxChannelGain);
