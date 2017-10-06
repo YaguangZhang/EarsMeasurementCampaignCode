@@ -202,7 +202,8 @@ for idxContiOutFile = 1:numContiOutFiles
                 + txGain + rxGain;
         end
     else
-        contiOutFileIndicesReflection = [contiOutFileIndicesReflection, idxContiOutFile];
+        contiOutFileIndicesReflection = [contiOutFileIndicesReflection, ...
+            idxContiOutFile]; %#ok<AGROW>
     end
     % Store the results.
     contiPathLossesWithGpsInfo{idxContiOutFile} ...

@@ -101,7 +101,7 @@ if isfield(curOutFileDir, 'folder')
 else
     absPathOutFile = curOutFileDir.name;
 end
-curSignal = read_complex_binary(absPathOutFile);
+numComplexSamps = countComplexBinary(absPathOutFile);
 
 %% Compute the Path Loss
 % We will segment the input signal for the whole track according to the GPS
@@ -129,7 +129,7 @@ assert(strcmp(epochTimeOutFileStr, epochFirstGpsFileStr), ...
 % measurement signal.
 numGpsSamplesCovered = numGpsSamples;
 
-measurementTimeLength = length(curSignal)/Fs;
+measurementTimeLength = numComplexSamps/Fs;
 idxFirstGpsSamplesNotCovered = ...
     find(gpsTimes-gpsTimes(1)>measurementTimeLength, 1);
 if(~isempty(idxFirstGpsSamplesNotCovered))
@@ -138,7 +138,7 @@ if(~isempty(idxFirstGpsSamplesNotCovered))
     numGpsSamplesCovered = idxFirstGpsSamplesNotCovered-1;
 end
 
-curContiPathLossesWithGpsInfo = nan(numGpsSamplesCovered,3);
+curContiPathLossesWithGpsInfo = nan(numGpsSamplesCovered,4);
 for idxGpsSample = 1:numGpsSamplesCovered
     disp('curContiPathLossesWithGpsInfo: ');
     disp(['    Computing path loss for segment ', num2str(idxGpsSample), '/', ...
@@ -152,8 +152,8 @@ for idxGpsSample = 1:numGpsSamplesCovered
             [gpsTimes(idxGpsSample); gpsTimes(idxGpsSample+1)] ...
             -gpsTimes(1)));
         % We need to increase the start index by 1.
-        curSigSegIdxRange = (sigSampIndicesByGps(1)+1) ...
-            :sigSampIndicesByGps(2);
+        curSigSegIdxRange = [sigSampIndicesByGps(1)+1, ...
+            sigSampIndicesByGps(2)];
     else
         % For the last GPS sample, all the remaining signal samples will be
         % assigned to it.
@@ -161,17 +161,20 @@ for idxGpsSample = 1:numGpsSamplesCovered
             gpsTimes(idxGpsSample) ...
             -gpsTimes(1)));
         % We need to increase the start index by 1.
-        curSigSegIdxRange = (sigSampIdxForCurGps(1)+1) ...
-            :length(curSignal);
+        curSigSegIdxRange = [sigSampIdxForCurGps(1)+1, ...
+            numComplexSamps];
     end
     
     % Compute the path loss for the singal segment. We only need to discard
     % a small account of the starting samples at the very begining to avoid
     % the possible warm-up stage of the USRP.
     FlagCutHead = (idxGpsSample==1);
+    % function [ pathLossInDb ] ...
+    %     = computePathLossForCurSignal(curSignal, txPower, ...
+    %       rxGain, noiseEliminationFct, powerShiftsForCali, FlagCutHead)
     pathLossInDb = computePathLossForCurSignal( ...
-        curSignal(curSigSegIdxRange), txPower, ...
-        usrpGains(idxGpsSample), noiseEliminationFct, ...
+        readComplexBinaryInRange(absPathOutFile, curSigSegIdxRange), ... 
+        txPower, usrpGains(idxGpsSample), noiseEliminationFct, ...
         powerShiftsForCalis(idxGpsSample), FlagCutHead);
     
     % Store the result as a [path loss (dB), lat, lon] array.
