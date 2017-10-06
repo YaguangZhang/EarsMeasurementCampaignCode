@@ -277,7 +277,7 @@ plot3k([validPathLossesWithValidGps(:,5), validPathLossesWithValidGps(:,4), ...
 % will have to fix it here.
 hCb = findall( allchild(hPathLossesOnMap), 'type', 'colorbar');
 hCb.Ticks = linspace(1,length(colormap),length(hCb.TickLabels));
-hold off; grid on; view(0, 90); legend(hTx, 'TX');
+hold off; grid on; view(45, 45); legend(hTx, 'TX');
 title('Path Losses on Map (Large Scale & SIMO)');
 xlabel('Lon'); ylabel('Lat'); zlabel('Path Loss (dB)');
 

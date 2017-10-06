@@ -62,8 +62,8 @@ load(ABS_PATH_TO_TX_INFO_LOGS_FILE);
 lat0 = TX_LAT;
 lon0 = TX_LON;
 alt0 = 100;     % For simplicity.
-az0 = [45 135];
-el0 = [45 -30];
+az0 = [45 50 135 140 45  50   135 140 -40 -50 -110 -125 -40 -50 -110 -125];
+el0 = [45 -30 50 -45 120 -115 160 -155 120 -115 160 -155 45 -30 50 -45];
 lats = lat0 + [-0.001 -0.001 0.001 0.001 -0.001 -0.001 0.001 0.001];
 lons = lon0 + [-0.001 0.001 -0.001 0.001 -0.001 0.001 -0.001 0.001];
 alts = alt0 + [50 50 50 50 -50 -50 -50 -50];
@@ -86,6 +86,9 @@ for idxAng = 1:length(az0)
         saveas(hDebugFigMap, [curAbsPathToSavePlot, '_map.png']);
         saveas(hDebugFigMap, [curAbsPathToSavePlot, '_map.fig']);
     end
+    
+    % To save memory.
+    close all;
 end
 
 % EOF
