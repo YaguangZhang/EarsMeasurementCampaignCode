@@ -1,4 +1,4 @@
-% COMPUTEPATHLOSSES Compute the path losses in dB for all the locations
+% EVALPATHLOSSES Evaluate the path losses in dB for all the locations
 % covered by our measurement data set (excluding the Conti case).
 %
 % We will consider both the TX calibration and the antenna normalization.
@@ -20,6 +20,8 @@
 clear; clc; close all; dbstop if error;
 
 %% Configurations
+
+warning('on');
 
 % Add libs to current path and set ABS_PATH_TO_EARS_SHARED_FOLDER according
 % to the machine name.
@@ -184,7 +186,7 @@ for idxSeries = 1:numSeries
             TX_INFO_LOGS_ABS_PAR_DIRS));
         idxCurSer = str2double(curSeries((length('Series_')+1):end));
         assert(length(idxParDir)==1, ...
-            'More than 1 parent folder match with the meta information of the current Series data.');
+            'Error: More than 1 parent folder match with the meta information of the current Series data!');
         curTxInfoLog = TX_INFO_LOGS{idxParDir}(idxCurSer);
         assert(curTxInfoLog.seriesNum==idxCurSer, ...
             'The series index number in the matched Tx info log does not agree with idxCurSer.');

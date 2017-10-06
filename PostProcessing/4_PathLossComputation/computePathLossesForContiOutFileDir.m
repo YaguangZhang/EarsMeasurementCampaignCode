@@ -2,9 +2,9 @@ function [ curContiPathLossesWithGpsInfo, absPathOutFile ] ...
     = computePathLossesForContiOutFileDir( ...
     curOutFileDir, contiGpsFilesDirs, ...
     noiseEliminationFct)
-%COMPUTEPATHLOSSFORCONTIOUTFILEDIR Load the Gnu Radio samples stored in the .out
-%file specified by the input dir struct outFileDir, and compute the path
-%loss for it.
+%COMPUTEPATHLOSSFORCONTIOUTFILEDIR Load the Gnu Radio samples stored in the
+%.out file specified by the input dir struct outFileDir, and compute the
+%path loss for it.
 %
 % We will consider both the TX calibration and the antenna normalization.
 %
@@ -60,7 +60,7 @@ end
 
 % All the GPS samples for this track.
 numGpsSamples = length(contiGpsFilesDirs);
-[lats, lons] = deal(nan(numGpsSamples,1));
+[lats, lons, alts] = deal(nan(numGpsSamples,1));
 gpsLogs = cell(numGpsSamples,1);
 for idxGpsSample = 1:numGpsSamples
     % Loading the GPS file.
@@ -69,6 +69,7 @@ for idxGpsSample = 1:numGpsSamples
     
     lat = gpsLogSample.latitude;
     lon = gpsLogSample.longitude;
+    alt = gpsLogSample.altitude;
     
     % Add a minus sign if it is W or S.
     if(isW(gpsLog.gpsLocation))
@@ -81,6 +82,7 @@ for idxGpsSample = 1:numGpsSamples
     % Store the results.
     lats(idxGpsSample) = lat;
     lons(idxGpsSample) = lon;
+    alts(idxGpsSample) = alt;
     gpsLogs{idxGpsSample} = gpsLog;
 end
 
@@ -138,7 +140,8 @@ end
 
 curContiPathLossesWithGpsInfo = nan(numGpsSamplesCovered,3);
 for idxGpsSample = 1:numGpsSamplesCovered
-    disp(['curContiPathLossesWithGpsInfo: Computing path loss for segment ', num2str(idxGpsSample), '/', ...
+    disp('curContiPathLossesWithGpsInfo: ');
+    disp(['    Computing path loss for segment ', num2str(idxGpsSample), '/', ...
         num2str(numGpsSamplesCovered), '...']);
     
     % Find the signal segment for this GPS sample.
@@ -173,7 +176,8 @@ for idxGpsSample = 1:numGpsSamplesCovered
     
     % Store the result as a [path loss (dB), lat, lon] array.
     curContiPathLossesWithGpsInfo(idxGpsSample, :) ...
-        = [pathLossInDb, lats(idxGpsSample), lons(idxGpsSample)];
+        = [pathLossInDb, ...
+        lats(idxGpsSample), lons(idxGpsSample), alts(idxGpsSample)];
 end
 
 end
