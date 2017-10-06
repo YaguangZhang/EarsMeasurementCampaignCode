@@ -88,25 +88,25 @@ AMPSDB = 10.*log10(AMPS);
 
 % Shift all the amplitudes in dB to nonegative values.
 minAmpDb = min([ampsDb(:);AMPSDB(:)]);
-ampsDb = ampsDb - minAmpDb;
-AMPSDB = AMPSDB - minAmpDb;
+ampsDbRel = ampsDb - minAmpDb;
+AMPSDBREL = AMPSDB - minAmpDb;
 
 if FLAG_USE_MATLAB_AZEL_CONVENTION
-    [x,y,z] = sph2cart(deg2rad(azs),deg2rad(els),ampsDb);
-    [X,Y,Z] = sph2cart(deg2rad(AZS),deg2rad(ELS),AMPSDB);
+    [x,y,z] = sph2cart(deg2rad(azs),deg2rad(els),ampsDbRel);
+    [X,Y,Z] = sph2cart(deg2rad(AZS),deg2rad(ELS),AMPSDBREL);
 else
     % Convert from the polar coordinate system to the Cartesian system for
     % plotting. We have
     %    x   = amp * cosd(el) * sind(360-az)
     %     y  = amp * cosd(el) * cosd(360-az)
     %      z = amp * sind(el)
-    x = ampsDb .* cosd(els) .* sind(360-azs);
-    y = ampsDb .* cosd(els) .* cosd(360-azs);
-    z = ampsDb .* sind(els);
+    x = ampsDbRel .* cosd(els) .* sind(360-azs);
+    y = ampsDbRel .* cosd(els) .* cosd(360-azs);
+    z = ampsDbRel .* sind(els);
     
-    X = AMPSDB .* cosd(ELS) .* sind(360-AZS);
-    Y = AMPSDB .* cosd(ELS) .* cosd(360-AZS);
-    Z = AMPSDB .* sind(ELS);
+    X = AMPSDBREL .* cosd(ELS) .* sind(360-AZS);
+    Y = AMPSDBREL .* cosd(ELS) .* cosd(360-AZS);
+    Z = AMPSDBREL .* sind(ELS);
 end
 
 hInterPat3D = figure('units','normalized', ...
@@ -125,7 +125,7 @@ else
     zlabel('z (to top)');
 end
 title({'Interpolated Antenna 3D Radiation Pattern'; ...
-    '(Amplitude in dB Relative to the Minimum Value)'});
+    '(Amplitude in dB)'});
 legend(hRef,'Ref', 'Location', 'southeast');
 axis equal; view(135,30);
 grid on;

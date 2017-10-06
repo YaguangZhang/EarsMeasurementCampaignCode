@@ -36,7 +36,8 @@ addpath(fullfile(pwd, '3_AntennaPattern'));
 ABS_PATH_TO_SAVE_PLOTS = fullfile(ABS_PATH_TO_EARS_SHARED_FOLDER, ...
     'PostProcessingResults', 'PathLossComputation');
 
-% Reuse results from plotInfo.m and calibrateRx.m.
+% Reuse results from plotInfo.m, calibrateRx.m, fetchAntennaPattern.m, and
+% loadMeasCampaignInfo.m.
 ABS_PATH_TO_DATA_INFO_FILE = fullfile(ABS_PATH_TO_EARS_SHARED_FOLDER, ...
     'PostProcessingResults', 'SummaryReport', 'plots', 'plotInfo.mat');
 ABS_PATH_TO_CALI_LINES_FILE = fullfile(ABS_PATH_TO_EARS_SHARED_FOLDER, ...

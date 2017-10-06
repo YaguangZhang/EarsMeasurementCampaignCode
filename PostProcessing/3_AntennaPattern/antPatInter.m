@@ -17,7 +17,7 @@ function [ amps ] = antPatInter(patAz, patEl, azs, els, INTER_METHOD)
 %     corresponding to a sweep sample.
 %   - azs, els
 %     The points that needed to interpolate. The ranges of them are not
-%     limited.
+%     limited, but the unit for them should be degree.
 % Output:
 %   - amps
 %     Interpolated amplitude (linear).
@@ -106,28 +106,26 @@ switch INTER_METHOD
         % Project the directions we want to x-y and x-z planes,
         % respectively, to get the angles for fetching the antenna pattern
         % data as reference. Note that the angle we need for the x-y plane
-        % is azs, which is already available, but it may not be of the correct value corresponding to els0.
+        % is azs, which is already available, but it may not be of the
+        % correct value corresponding to els0.
         [xs, ys, zs] = sph2cart(deg2rad(azs), deg2rad(els), ones(size(azs)));
-        els0 = mod(rad2deg(atan2(zs, xs)), 360);
-        azs0 = mod(rad2deg(atan2(ys, xs)), 360);
+        rCut = (1-xs.^2).^0.5;
+        azs0 = mod(rad2deg(atan2(sign(ys).*rCut, xs)), 360);
+        els0 = mod(rad2deg(atan2(sign(zs).*rCut, xs)), 360);
         
         % Fetch the corresponding amplitude for (0, el) and (az, 0).
         amp0sAz = interp1(patAz.azs, patAz.amps, azs0);
         amp0sEl = interp1(patEl.els, patEl.amps, els0);
-        % Compute how close the point is to degree 0, and use the result as
-        % weights to get the weighted average of the two reference
-        % amplitudes, amp2sAz and amp0sEl. Note:
+        % Compute how close the point is to plane x-y and x-z, and use the
+        % results to get weights for averaging two reference amplitudes,
+        % amp2sAz and amp0sEl. Note:
         %     -  360 degree is essentially 0, too;
         %      - We have weights from [0, 1];
-        %     -  And the closer the angle is towards 0, the smaller the
-        %     weight will be;
-        %      - The weights for azs are computed via azs, and weights for
-        %      els vis els;
-        %     -  This makes sense because, for example, when az is close to
-        %      0, we should depend more on the amplitude from the elevation
-        %      sweep, i.e. the az weight should be small.
-        wAzs = (- cosd(azs0) + 1)./2;
-        wEls = (- cosd(els0) + 1)./2;
+        %     -  And the closer the point is towards the x-y / x-z plane,
+        %     the smaller abs(z) / abs(y) will become, and the smaller the
+        %     weight will be for amp0sEl / amp2sAz.
+        wAzs = abs(ys);
+        wEls = abs(zs);
         amps = (amp0sAz .* wAzs + amp0sEl .* wEls)./(wAzs + wEls);
         % For zero b's, we need to return amp0 for AZ = EL = 0. We will
         % just use the value for zero az from patAz.

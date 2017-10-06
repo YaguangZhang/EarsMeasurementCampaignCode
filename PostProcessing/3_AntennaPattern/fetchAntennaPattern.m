@@ -73,8 +73,8 @@ pat28GEl.azs = pat28GEl.els;
 pat28GEl.els = els;
 
 % At last, we need to normalize the results.
-pat28GAzNorm = normalizeAntAmp(pat28GAz, maxAntGainInDb);
-pat28GElNorm = normalizeAntAmp(pat28GEl, maxAntGainInDb);
+[pat28GAzNorm, pat28GElNorm] = normalizeAntPat(pat28GAz, pat28GEl, ...
+    maxAntGainInDb);
 
 disp('    Done!')
 
