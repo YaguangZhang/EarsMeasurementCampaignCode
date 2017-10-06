@@ -1,1 +1,0 @@
-ths_#_#: number of sigma used for setting up the noise elimination thresholds for calibration data set 1 and set 2, respectively.

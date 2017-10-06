@@ -46,7 +46,7 @@ FLAG_NOISE_ELI_VIA_AMP = true;
 %   compression (a non-linear area where a 1dB change in input results in
 %   less than 1dB change in output).  "
 BOOLS_MEAS_TO_FIT = {[1 1 1 1 1 1 1 0 0], ...
-    [0 1 1 1 1 1 1]};
+    [1 1 1 1 1 1 1]};
 
 % Sample rate used for GnuRadio.
 Fs = 1.04 * 10^6;
