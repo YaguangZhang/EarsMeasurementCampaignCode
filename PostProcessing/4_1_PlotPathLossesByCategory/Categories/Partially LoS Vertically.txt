@@ -30,7 +30,7 @@
 20170623_LargeScale_Series_1
 20170623_LargeScale_Series_2
 20170623_LargeScale_Series_3
-20170620_Conti_Series_1
+% 20170620_Conti_Series_1
 20170620_LargeScale_Series_11
 20170617_LargeScale_Series_4
 20170620_LargeScale_Series_6

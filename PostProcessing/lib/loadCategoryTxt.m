@@ -27,7 +27,7 @@ fclose(fid);
 
 catTxt = struct();
 catTxt.category = category;
-catTxt.series = series;
+catTxt.series = series';
 
 end
 % EOF
