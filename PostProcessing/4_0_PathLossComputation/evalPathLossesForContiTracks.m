@@ -286,8 +286,24 @@ for idxTrack = 1:numTracks
     else
         title({'Path Losses on Map (Conti. Track)', curTitleLabel});
     end
-    
     xlabel('Lon'); ylabel('Lat'); zlabel('Path Loss (dB)');
+    
+    % Plot path losses over distance from Tx.
+    validPLWithValidGPSCell = num2cell(validPathLossesWithValidGps, 2);
+    distsFromTx = cellfun(@(s) 1000.*lldistkm([s(2) s(3)],[TX_LAT,TX_LON]), ...
+        validPLWithValidGPSCell);
+    
+    hPathLossesOverDist = figure; hold on; colormap jet;
+    plot3k([distsFromTx, zeros(length(distsFromTx),1), ...
+        validPathLossesWithValidGps(:,1)], 'Marker', {'.', 6});
+    curAxis = axis;
+    axis([min(distsFromTx)-10, max(distsFromTx)+100, curAxis(3:6)]);
+    view(0, 0); set(gca, 'XScale', 'log'); grid on;
+    newXTicks = [10,100,200,500,1000];
+    set(gca, 'XTickLabels',newXTicks);
+    set(gca, 'XTick',newXTicks);
+    title('Path Losses over Distance (Conti)');
+    xlabel('Distance to Tx (m)'); ylabel(''); zlabel('Path Loss (dB)');
     
     % Save the plots.
     if ismember(idxTrack, contiOutFileIndicesReflection)
@@ -299,9 +315,10 @@ for idxTrack = 1:numTracks
             ABS_PATH_TO_SAVE_PLOTS, ...
             curFileName);
     end
-    saveas(hPathLossesOnMap, [pathPathossesOnMapFileToSave, '.png']);
-    saveas(hPathLossesOnMap, [pathPathossesOnMapFileToSave, '.fig']);
-    
+    saveas(hPathLossesOnMap, [pathPathossesOnMapFileToSave, '_map.png']);
+    saveas(hPathLossesOnMap, [pathPathossesOnMapFileToSave, '_map.fig']);
+    saveas(hPathLossesOverDist, [pathPathossesOnMapFileToSave, '_dist.png']);
+    saveas(hPathLossesOverDist, [pathPathossesOnMapFileToSave, '_dist.fig']);    
 end
 
 disp('    Done!')
