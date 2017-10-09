@@ -211,7 +211,7 @@ for idxContiOutFile = 1:numContiOutFiles
         = curContiPathLossesWithGpsInfo;
     absPathsContiOutFiles{idxContiOutFile} = absPathOutFile;
 end
-assert(all(~isempty(contiPathLossesWithGpsInfo{1:end})));
+assert(all(~isempty(vertcat(contiPathLossesWithGpsInfo{1:end}))));
 
 disp('    Saving the results...')
 % For absPathsOutFiles, convert it to relative paths under the data folder,
