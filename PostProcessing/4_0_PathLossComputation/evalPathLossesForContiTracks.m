@@ -271,7 +271,7 @@ for idxTrack = 1:numTracks
     plot(validPathLossesWithValidGps(:,3), validPathLossesWithValidGps(:,2), 'w.');
     plot(pathLossesWithValidGps(boolsInfPathloss,3), ...
         pathLossesWithValidGps(boolsInfPathloss,2), 'kx');
-    hTx = plot(TX_LON, TX_LAT, '^w', 'MarkerFaceColor', 'b');
+    hTx = plot3(TX_LON, TX_LAT, TX_HEIGHT_M, '^w', 'MarkerFaceColor', 'b');
     plot_google_map('MapType','satellite');
     plot3k([validPathLossesWithValidGps(:,3), validPathLossesWithValidGps(:,2), ...
         validPathLossesWithValidGps(:,1)], 'Marker', {'.', 12});

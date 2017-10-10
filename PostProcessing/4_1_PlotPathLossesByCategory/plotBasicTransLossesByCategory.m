@@ -126,7 +126,7 @@ for idxCat = 1:numCategories
     plot(validPathLossesWithValidGps(:,3), validPathLossesWithValidGps(:,2), 'w.');
     plot(pathLossesWithValidGps(boolsInfPathloss,3), ...
         pathLossesWithValidGps(boolsInfPathloss,2), 'kx');
-    hTx = plot(TX_LON, TX_LAT, '^b');
+    hTx = plot(TX_LON, TX_LAT, '^w', 'MarkerFaceColor', 'b');
     plot_google_map('MapType','satellite');
     plot3k([validPathLossesWithValidGps(:,3), validPathLossesWithValidGps(:,2), ...
         validPathLossesWithValidGps(:,1)], 'Marker', {'.', 12});
@@ -135,7 +135,7 @@ for idxCat = 1:numCategories
     hCb = findall( allchild(hBasicTransLossesOnMapIndi), 'type', 'colorbar');
     hCb.Ticks = linspace(1,length(colormap),length(hCb.TickLabels));
     hold off; grid on; view(0, 90); legend(hTx, 'TX');
-    title('Path Losses on Map (Large Scale & SIMO)');
+    title(['Path Losses on Map - ', curCatTxt.category]);
     xlabel('Lon'); ylabel('Lat'); zlabel('Path Loss (dB)');
     
     % Plot path losses on map with average GPS coordinates.
@@ -143,7 +143,7 @@ for idxCat = 1:numCategories
     plot(validPathLossesWithValidGps(:,5), validPathLossesWithValidGps(:,4), 'w.');
     plot(pathLossesWithValidGps(boolsInfPathloss,3), ...
         pathLossesWithValidGps(boolsInfPathloss,2), 'kx');
-    hTx = plot(TX_LON, TX_LAT, '^b');
+    hTx = plot(TX_LON, TX_LAT, '^w', 'MarkerFaceColor', 'b');
     plot_google_map('MapType','satellite');
     plot3k([validPathLossesWithValidGps(:,5), validPathLossesWithValidGps(:,4), ...
         validPathLossesWithValidGps(:,1)], 'Marker', {'.', 12});
@@ -152,7 +152,7 @@ for idxCat = 1:numCategories
     hCb = findall( allchild(hBasicTransLossesOnMap), 'type', 'colorbar');
     hCb.Ticks = linspace(1,length(colormap),length(hCb.TickLabels));
     hold off; grid on; view(45, 45); legend(hTx, 'TX');
-    title('Path Losses on Map (Large Scale & SIMO)');
+    title(['Path Losses on Map - Averaged Site Locations - ', curCatTxt.category]);
     xlabel('Lon'); ylabel('Lat'); zlabel('Path Loss (dB)');
     
     % Plot path losses over distance from Tx.
@@ -169,7 +169,7 @@ for idxCat = 1:numCategories
     newXTicks = [10,100,200,500,1000];
     set(gca, 'XTickLabels',newXTicks);
     set(gca, 'XTick',newXTicks);
-    title('Path Losses over Distance (Large Scale & SIMO)');
+    title(['Path Losses over Distance ', curCatTxt.category]);
     xlabel('Distance to Tx (m)'); ylabel(''); zlabel('Path Loss (dB)');
     
     % Save the plots.
