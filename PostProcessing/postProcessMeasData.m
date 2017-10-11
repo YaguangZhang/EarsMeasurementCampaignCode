@@ -24,21 +24,21 @@ setPath;
 % 'fittedCalPs', 'rxGains'.
 
 % calibrateRx;
-plotCalibrationLines;
+% plotCalibrationLines;
 
 %% 3_AntennaPattern: Generate the Antenna Pattern
 % This will generate: 'pat28GAzNorm', 'pat28GElNorm'.
 
-% fetchAntennaPattern;
+fetchAntennaPattern;
 
 %% 4_0_PathLossComputation: Compute & Plot the Pass Losses for Each Site
 % This will generate: 'TX_POWER_DBM', 'TX_HEIGHT_FEET', 'TX_HEIGHT_M',
 % 'F_S', 'TX_LAT', 'TX_LON', 'TX_INFO_LOGS', 'TX_INFO_LOGS_ABS_PAR_DIRS'.
 
-% loadMeasCampaignInfo;
+loadMeasCampaignInfo;
 
-% evalPathLosses;
-% evalPathLossesForContiTracks;
+evalPathLosses;
+evalPathLossesForContiTracks;
 
 %% 4_1_PlotPathLossesByCategory: Plot the Path Losses by Category
 

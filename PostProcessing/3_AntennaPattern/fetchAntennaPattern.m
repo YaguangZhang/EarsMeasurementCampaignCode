@@ -27,7 +27,7 @@ ABS_PATH_TO_SAVE_PLOTS = fullfile(ABS_PATH_TO_EARS_SHARED_FOLDER, ...
 inFreq  = 2.5*10^9;
 
 % For antenna pattern normalization.
-maxAntGainInDb = 20;
+maxAntGainInDb = 22;
 
 %% Before Processing the Data
 
