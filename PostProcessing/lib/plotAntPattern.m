@@ -30,12 +30,15 @@ function [ hPat2DRef, hPat3DRef, ...
 % Yaguang Zhang, Purdue, 10/02/2017
 
 %% 2D Plot
+% Update: We will also plot the HPBW for both cases on the angular plane.
+
 hPat2DRef = figure('units','normalized', ...
     'outerposition',[0.1 0.05 0.8 0.9], 'Name','hPat2DRef');
 % Azimuth.
 polarAx = subplot(2,2,1,polaraxes);
-plotAntPlanePat(polarAx, patAz.azs, 10.*log10(patAz.amps));
-title('Azimuth Plane Pattern (Relative to the Minimum Amplitude)');
+[~, hpbw] = plotAntPlanePat(polarAx, patAz.azs, 10.*log10(patAz.amps));
+title({'Azimuth Plane Pattern (Relative to the Minimum Amplitude)'; ...
+    ['HPBW = ', num2str(hpbw), ' degrees']});
 
 subplot(2,2,3);
 angles = patAz.azs;
@@ -46,8 +49,9 @@ xlabel('Azimuth'); ylabel('Normalized Amplitude (dB)');
 
 % Elevation.
 polarAx = subplot(2,2,2,polaraxes);
-plotAntPlanePat(polarAx, patEl.els, 10.*log10(patEl.amps));
-title('Elevation Plane Pattern (Relative to the Minimum Amplitude)');
+[~, hpbw] = plotAntPlanePat(polarAx, patEl.els, 10.*log10(patEl.amps));
+title({'Elevation Plane Pattern (Relative to the Minimum Amplitude)'; ...
+    ['HPBW = ', num2str(hpbw), ' degrees']});
 
 subplot(2,2,4);
 angles = patEl.els;
