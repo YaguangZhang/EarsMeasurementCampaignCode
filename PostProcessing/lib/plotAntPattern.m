@@ -39,27 +39,27 @@ hPat2DRef = figure('units','normalized', ...
     'outerposition',[0.1 0.05 0.8 0.9], 'Name','hPat2DRef');
 % Azimuth.
 polarAx = subplot(2,2,1,polaraxes);
-[~, hpbw] = plotAntPlanePat(polarAx, patAz.azs, 10.*log10(patAz.amps));
+[~, hpbw] = plotAntPlanePat(polarAx, patAz.azs, antPatLinearToDb(patAz.amps));
 title({'Azimuth Plane Pattern (Relative to the Minimum Amplitude)'; ...
     ['HPBW = ', num2str(hpbw), ' degrees']});
 
 subplot(2,2,3);
 angles = patAz.azs;
-plot(angles, 10.*log10(patAz.amps));
-title('Azimuth Sweep Data');
+plot(angles, antPatLinearToDb(patAz.amps));
+title('Azimuth Sweep Data'); grid minor;
 curAxis = axis; axis([min(angles), max(angles), curAxis(3:4)]);
 xlabel('Azimuth'); ylabel('Normalized Amplitude (dB)');
 
 % Elevation.
 polarAx = subplot(2,2,2,polaraxes);
-[~, hpbw] = plotAntPlanePat(polarAx, patEl.els, 10.*log10(patEl.amps));
+[~, hpbw] = plotAntPlanePat(polarAx, patEl.els, antPatLinearToDb(patEl.amps));
 title({'Elevation Plane Pattern (Relative to the Minimum Amplitude)'; ...
     ['HPBW = ', num2str(hpbw), ' degrees']});
 
 subplot(2,2,4);
 angles = patEl.els;
-plot(angles, 10.*log10(patEl.amps));
-title('Elevation Sweep Data');
+plot(angles, antPatLinearToDb(patEl.amps));
+title('Elevation Sweep Data'); grid minor;
 curAxis = axis; axis([min(angles), max(angles), curAxis(3:4)]);
 xlabel('Elevation'); ylabel('Normalized Amplitude (dB)');
 

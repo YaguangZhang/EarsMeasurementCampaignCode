@@ -40,7 +40,7 @@ end
 AZS = [patAz.azs; zeros(length(patEl.azs),1)];
 ELS = [zeros(length(patAz.els),1); patEl.els];
 AMPS = [patAz.amps; patEl.amps];
-AMPSDB = 10.*log10(AMPS);
+AMPSDB = antPatLinearToDb(AMPS);
 
 % Shift all the amplitudes in dB to nonegative values.
 minAmpDb = min(AMPSDB(:));

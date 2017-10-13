@@ -37,22 +37,22 @@ normalizedAntPatEl = antPatEl;
 
 switch NORM_METHOD
     case 'asAWhole'
-        ampsInDb = 10.*log10([antPatAz.amps; antPatEl.amps]);
+        ampsInDb = antPatLinearToDb([antPatAz.amps; antPatEl.amps]);
         ampsInDb = ampsInDb-max(ampsInDb)+maxAntGainInDb;
         
-        amps = 10.^(ampsInDb./10);
+        amps = antPatDbToLinear(ampsInDb);
         
         idxD = length(antPatAz.amps);
         normalizedAntPatAz.amps = amps(1:idxD);
         normalizedAntPatEl.amps = amps((idxD+1):end);
     case 'separately'
-        ampsInDbAz = 10.*log10(antPatAz.amps);
+        ampsInDbAz = antPatLinearToDb(antPatAz.amps);
         normalizedAmpsInDbAz = ampsInDbAz-max(ampsInDbAz)+maxAntGainInDb;
-        normalizedAntPatAz.amps = 10.^(normalizedAmpsInDbAz./10);
+        normalizedAntPatAz.amps = antPatDbToLinear(normalizedAmpsInDbAz);
         
-        ampsInDbEl = 10.*log10(antPatEl.amps);
+        ampsInDbEl = antPatLinearToDb(antPatEl.amps);
         normalizedAmpsInDbEl = ampsInDbEl-max(ampsInDbEl)+maxAntGainInDb;
-        normalizedAntPatEl.amps = 10.^(normalizedAmpsInDbEl./10);
+        normalizedAntPatEl.amps = antPatDbToLinear(normalizedAmpsInDbEl);
     otherwise
 end
 

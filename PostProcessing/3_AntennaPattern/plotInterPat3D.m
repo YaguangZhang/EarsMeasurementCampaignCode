@@ -70,21 +70,21 @@ els = els(1:(end-1));
 % measurement results.
 if FLAG_INTER_IN_DB
     patAzDb = patAz;
-    patAzDb.amps = 10.*log10(patAzDb.amps);
+    patAzDb.amps = antPatLinearToDb(patAzDb.amps);
     patElDb = patEl;
-    patElDb.amps = 10.*log10(patElDb.amps);
+    patElDb.amps = antPatLinearToDb(patElDb.amps);
     ampsDb = antPatInter(patAzDb, patElDb, azs, els, INTER_METHOD);
 else
     amps = antPatInter(patAz, patEl, azs, els, INTER_METHOD);
     % Plot in dB.
-    ampsDb = 10.*log10(amps);
+    ampsDb = antPatLinearToDb(amps);
 end
 
 % We will also plot the sweep data, just for reference.
 AZS = [patAz.azs; zeros(length(patEl.azs),1)];
 ELS = [zeros(length(patAz.els),1); patEl.els];
 AMPS = [patAz.amps; patEl.amps];
-AMPSDB = 10.*log10(AMPS);
+AMPSDB = antPatLinearToDb(AMPS);
 
 % Shift all the amplitudes in dB to nonegative values.
 minAmpDb = min([ampsDb(:);AMPSDB(:)]);

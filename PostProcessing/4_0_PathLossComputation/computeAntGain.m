@@ -105,7 +105,7 @@ el = rad2deg(elR);
 % with the "WeightedSum" method.
 amps = antPatInter(antPatAz, antPatEl, az, el, 'WeightedSum');
 
-gain = 10.*log10(amps);
+gain = antPatLinearToDb(amps);
 
 % Plot the positions.
 if FLAG_DEBUG    
@@ -149,7 +149,7 @@ if FLAG_DEBUG
     Z = (-d - (normal(1)*X) - (normal(2)*Y))/normal(3);
     
     % Antenna pattern.
-    antPatAmpInDb = 10.*log10([antPatAz.amps; antPatEl.amps]);
+    antPatAmpInDb = antPatLinearToDb([antPatAz.amps; antPatEl.amps]);
     antPatRelAmpInDb = antPatAmpInDb-min(antPatAmpInDb);
     [antPatPtsXs, antPatPtsYx, antPatPtsZs] ...
         = sph2cart(deg2rad([antPatAz.azs; antPatEl.azs]), ...
