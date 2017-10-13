@@ -23,8 +23,8 @@ setPath;
 % This will generate: 'lsLinesPolys', 'lsLinesPolysInv', 'fittedMeaPs',
 % 'fittedCalPs', 'rxGains'.
 
-% calibrateRx;
-% plotCalibrationLines;
+calibrateRx;
+plotCalibrationLines;
 
 %% 3_AntennaPattern: Generate the Antenna Pattern
 % This will generate: 'pat28GAzNorm', 'pat28GElNorm'.
