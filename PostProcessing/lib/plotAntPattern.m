@@ -1,7 +1,7 @@
 function [ hPat2DRef, hPat3DRef, ...
     hInterPat3DOnLineLinear, hInterPat3DOnLineDb, ...
     hInterPat3DWeightedSumLinear, hInterPat3DWeightedSumDb ] ...
-    = plotAntPattern( patAz, patEl )
+    = plotAntPattern( patAz, patEl, absPathWithPrefixToSavePlots )
 %PLOTANTPATTERN Plot the antenna pattern specified by the inputs patAz and
 %patEl.
 %
@@ -19,6 +19,9 @@ function [ hPat2DRef, hPat3DRef, ...
 %         The phases of the samples.
 %     All of these fields contains a column vector with each row
 %     corresponding to a sweep sample.
+%   - absPathWithPrefixToSavePlots
+%     A optional string to specify where to save the plots. When it is not
+%     present, the plots will only be generated without saving.
 %
 % For the reference input sweep data, both a 2D illsutration and a 3D
 % illustrations will be generated. For the interpolated data, a 3D
@@ -79,6 +82,35 @@ set(hInterPat3DWeightedSumDb, 'Name', 'interPat3DWeightedSumDb');
 
 % We will also plot the sweep data, just for reference.
 hPat3DRef = plotRefPat3D( patAz, patEl);
+
+%% Save the Plots
+if nargin>2
+    absPathCurFile = [absPathWithPrefixToSavePlots, 'pat2DRef'];
+    saveas(hPat2DRef, [absPathCurFile, '.png']);
+    saveas(hPat2DRef, [absPathCurFile, '.fig']);
+    
+    absPathCurFile = [absPathWithPrefixToSavePlots, 'pat3DRef'];
+    saveas(hPat3DRef, [absPathCurFile, '.png']);
+    saveas(hPat3DRef, [absPathCurFile, '.fig']);
+    
+    absPathCurFile = [absPathWithPrefixToSavePlots, ...
+        'interPat3DOnLineLinear'];
+    saveas(hInterPat3DOnLineLinear, [absPathCurFile, '.png']);
+    saveas(hInterPat3DOnLineLinear, [absPathCurFile, '.fig']);
+    
+    absPathCurFile = [absPathWithPrefixToSavePlots, 'interPat3DOnLineDb'];
+    saveas(hInterPat3DOnLineDb, [absPathCurFile, '.png']);
+    saveas(hInterPat3DOnLineDb, [absPathCurFile, '.fig']);
+    
+    absPathCurFile = [absPathWithPrefixToSavePlots, ...
+        'interPat3DWeightedSumLinear'];
+    saveas(hInterPat3DWeightedSumLinear, [absPathCurFile, '.png']);
+    saveas(hInterPat3DWeightedSumLinear, [absPathCurFile, '.fig']);
+    
+    absPathCurFile = [absPathWithPrefixToSavePlots, 'interPat3DWeightedSumDb'];
+    saveas(hInterPat3DWeightedSumDb, [absPathCurFile, '.png']);
+    saveas(hInterPat3DWeightedSumDb, [absPathCurFile, '.fig']);
+end
 
 end
 % EOF

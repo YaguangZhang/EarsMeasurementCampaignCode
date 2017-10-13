@@ -41,16 +41,24 @@ for idxSeries = 1:numSeries
     txInfoLog(idxSeries).location = logs{2}{idxSeries};
     % May not be available: txAzs, txEls, rxRzs, txEls, and notes.
     if length(logs{3})>=idxSeries
-        txInfoLog(idxSeries).txAz = logs{3}(idxSeries);
+        % Note that in land navigation, azimuth is measured clockwise from
+        % north, while in our model of the antenna pattern, azimuth is
+        % measured counter-clockwise. We need to fix this, too.
+        txInfoLog(idxSeries).txAz = 360-logs{3}(idxSeries);
     end
     if length(logs{4})>=idxSeries
-        txInfoLog(idxSeries).txEl = logs{4}(idxSeries);
+        % Note that in the TxInfo.txt logs, we have "-" for Uptilt and "+"
+        % for Downtilt. Here, we need to change the sign to make it agree
+        % with the normal definition of elevation.
+        txInfoLog(idxSeries).txEl = -logs{4}(idxSeries);
     end
     if length(logs{5})>=idxSeries
-        txInfoLog(idxSeries).rxAz = logs{5}(idxSeries);
+        % Azimuth again. Invert the angle direction.
+        txInfoLog(idxSeries).rxAz = 360-logs{5}(idxSeries);
     end
     if length(logs{6})>=idxSeries
-        txInfoLog(idxSeries).rxEl = logs{6}(idxSeries);
+        % Elevation again. Change the sign.
+        txInfoLog(idxSeries).rxEl = -logs{6}(idxSeries);
     end
     if length(logs{7})>=idxSeries
         txInfoLog(idxSeries).note = logs{7}{idxSeries};

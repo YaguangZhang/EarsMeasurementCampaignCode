@@ -24,9 +24,10 @@ function [ gain, hDebugFig, hDebugFigMap] ...
 
 if nargin<11
     FLAG_DEBUG = false;
-    hDebugFig = nan;
-    hDebugFigMap = nan;
 end
+
+hDebugFig = nan;
+hDebugFigMap = nan;
 
 % Set this to true to also show all the intermediant vectors for debugging.
 FLAG_VERBOSE = false;
@@ -107,24 +108,28 @@ amps = antPatInter(antPatAz, antPatEl, az, el, 'WeightedSum');
 gain = 10.*log10(amps);
 
 % Plot the positions.
-if FLAG_DEBUG
+if FLAG_DEBUG    
+    % For scaling the plotted components.
+    gridStep = 1; % In meter.
+    gridWidth = sqrt(xDiff^2+yDiff^2)/2; % In meter.
+    
     % The origin antenna orientation.
-    [xOri, yOri, zOri] = sph2cart(az0R, el0R, alt0/2);
+    [xOri, yOri, zOri] = sph2cart(az0R, el0R, gridWidth/2);
     newBasisX = [xOri; yOri; zOri];
     newBasisX = newBasisX/norm(newBasisX);
     xNewX = x0+xOri;
     yNewX = y0+yOri;
     zNewX = alt0+zOri;
-    
-    % New coordinate system.
-    [xNewYDiff, yNewYDiff, zNewYDiff] = sph2cart(az0R+pi/2, 0, alt0/2);
+    % The other two axes for the new coordinate system.
+    [xNewYDiff, yNewYDiff, zNewYDiff] ...
+        = sph2cart(az0R+pi/2, 0, gridWidth/2);
     newBasisY = [xNewYDiff; yNewYDiff; zNewYDiff];
     newBasisY = newBasisY/norm(newBasisY);
     xNewY = x0+xNewYDiff;
     yNewY = y0+yNewYDiff;
     zNewY = alt0+zNewYDiff;
     [xNewZDiff, yNewZDiff, zNewZDiff] = sph2cart( ...
-        az0R+pi, pi/2-el0R, alt0/2);
+        az0R+pi, pi/2-el0R, gridWidth/2);
     newBasisZ = [xNewZDiff; yNewZDiff; zNewZDiff];
     newBasisZ = newBasisZ/norm(newBasisZ);
     xNewZ = x0+xNewZDiff;
@@ -138,7 +143,8 @@ if FLAG_DEBUG
     normal = cross(p1 - p2, p1 - p3);
     d = p1(1)*normal(1) + p1(2)*normal(2) + p1(3)*normal(3);
     d = -d;
-    xGrid = (-alt0:alt0) + x0; yGrid = (-alt0:alt0) + y0;
+    xGrid = (-(gridWidth/2):gridStep:(gridWidth/2)) + x0;
+    yGrid = (-(gridWidth/2):gridStep:(gridWidth/2)) + y0;
     [X,Y] = meshgrid(xGrid,yGrid);
     Z = (-d - (normal(1)*X) - (normal(2)*Y))/normal(3);
     
@@ -173,24 +179,26 @@ if FLAG_DEBUG
         [alt0, zNewZ], '-b');
     % Plot the new x-y plane. We use plot3 instead of mesh because the
     % later one will mess up the color bar for plot3k.
-    hNewXY = plot3(X(:), Y(:), Z(:), 'Color', ones(1,3)*0.9);
+    hNewXY = plot3(X(:), Y(:), Z(:), '.', 'Color', ones(1,3)*0.9);
     % Plot the reference antenna pattern.
     plot3k(antPatPtsNewCoor, 'ColorData', antPatAmpInDb, ...
         'ColorRange', [min(antPatAmpInDb) max(antPatAmpInDb)]);
     if FLAG_VERBOSE
         plot3(x0+x1, y0+y1, alt0+z1, 'k+');
         plot3(x0+x1F, y0+y1, alt0+z1F, 'k*');
-        
     end
     % Embed the final results (az, el) in the figure title for human
     % inspectation.
-    title({'Origin (with Facing Direction) and Destination'; ...
+    title({['Origin (with Facing Direction az=',num2str(az0), ...
+        ',el=',num2str(el0), ') and Destination']; ...
         ['Computed (az, el) from the Origin''s view: (', ...
         num2str(az), ',', num2str(el),') degrees'];
         ['Gain = ', num2str(gain), ...
         ' dB according to the Colored Antenna Pattern (in dB)']})
-    hold off; grid minor; view(37.5, 30); axis equal;
-    xlabel('x (m)'); ylabel('y (m)'); zlabel('z (m)');
+    hold off; grid minor;
+    view(-105, 20); axis equal;
+    xlabel('x (northing in m)'); ylabel('y (westing in m)');
+    zlabel('z (altitude in m)');
     legend([hOri, hDes, hOriOri, hNewY, hNewZ, hNewXY], ...
         'Origin', 'Dest', ...
         'Origin Orientation (X)', 'Y', 'Z', 'Plane X-Y');
@@ -203,7 +211,8 @@ if FLAG_DEBUG
     hDes = plot3(lon, lat, alt, 'k.');
     plot3([lon0; lon], [lat0, lat], [alt0, alt], '--', ...
         'Color', ones(1,3)*0.7);
-    hold off; plot_google_map; view(135, 45); grid minor;
+    hold off; plot_google_map('MapType', 'satellite');
+    view(-10, 45); grid minor;
     xlabel('Lon'); ylabel('Lat'); zlabel('Alt (m)');
     legend([hOri, hDes], 'Origin', 'Dest');
 end

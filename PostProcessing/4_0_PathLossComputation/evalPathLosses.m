@@ -3,8 +3,7 @@
 %
 % We will consider both the TX calibration and the antenna normalization,
 % (i.e. the resulted path losses are antenna-independent, which are known
-% as the Basic Transmission Losses).
-% The results from
+% as the Basic Transmission Losses). The results from
 %   - PostProcessing/1_SummaryReport/genPlots.m and
 %     Output file plotInfo.mat contains the information for all the
 %     measurement data files found locally on the machine. Note that only
@@ -54,6 +53,9 @@ ABS_PATH_TO_TX_INFO_LOGS_FILE= fullfile(ABS_PATH_TO_EARS_SHARED_FOLDER, ...
 % For setting the threshold during the noise elimination.
 NUM_SIGMA_FOR_THRESHOLD = 3.5;
 
+% Set this to true if it is necessary to generate the debug figure for
+% computing antenna gains.
+FLAG_DEBUG = true;
 %% Before Processing the Data
 
 disp(' ------------------- ')
@@ -151,6 +153,9 @@ pathLossCounter = 1;
 % measurements. We choose to save the full file path to the .out file for
 % convenience.
 absPathsOutFiles = cell(numOutFiles, 1);
+if FLAG_DEBUG
+    absPathWithPreFixToSaveDebugFigs = fullfile(ABS_PATH_TO_SAVE_PLOTS, 'debug_');
+end
 for idxSeries = 1:numSeries
     disp(['        Processing series ', num2str(idxSeries), '/', ...
         num2str(numSeries), '...']);
@@ -194,24 +199,45 @@ for idxSeries = 1:numSeries
             'The series index number in the matched Tx info log does not agree with idxCurSer.');
         
         % Compute the antenna gains.
-        %    function [ gain ] = computeAntGain(lat0, lon0, alt0, ...
-        %        az0, el0, ...
+        %     function [ gain, hDebugFig, hDebugFigMap] ...
+        %         = computeAntGain(lat0, lon0, alt0, ...
+        %          az0, el0, ...
         %         lat, lon, alt, ...
-        %        antPatAz, antPatEl)
-        txGain = computeAntGain(TX_LAT, TX_LON, TX_HEIGHT_M, ...
+        %          antPatAz, antPatEl, FLAG_DEBUG)
+        [txGain, txHDebugFig, txHDebugFigMap] ...
+            = computeAntGain(TX_LAT, TX_LON, TX_HEIGHT_M, ...
             curTxInfoLog.txAz, curTxInfoLog.txEl, ...
             latM, lonM, altM, ...
-            pat28GAzNorm, pat28GElNorm);
-        rxGain = computeAntGain(latM, lonM, altM, ...
+            pat28GAzNorm, pat28GElNorm, FLAG_DEBUG);
+        [rxGain, rxHDebugFig, rxHDebugFigMap] ...
+            = computeAntGain(latM, lonM, altM, ...
             curTxInfoLog.rxAz, curTxInfoLog.rxEl, ...
             TX_LAT, TX_LON, TX_HEIGHT_M, ...
-            pat28GAzNorm, pat28GElNorm);
+            pat28GAzNorm, pat28GElNorm, FLAG_DEBUG);
         
         % Store the results, considering the antenna gains.
         pathLossesWithGpsInfo(pathLossCounter,:) ...
             = [pathLossInDb + txGain + rxGain, lat, lon, latM, lonM];
         absPathsOutFiles{pathLossCounter} = absPathOutFile;
         pathLossCounter = pathLossCounter+1;
+        
+        if FLAG_DEBUG
+            absPathToSavePlots = [absPathWithPreFixToSaveDebugFigs, ...
+                'Series_', num2str(idxSeries), ...
+                '_OutputFile_', num2str(idxOutFile), '_tx_'];
+            saveas(txHDebugFig, [absPathToSavePlots, 'debugFig.fig']);
+            saveas(txHDebugFig, [absPathToSavePlots, 'debugFig.png']);
+            saveas(txHDebugFigMap, [absPathToSavePlots, 'debugFigMap.fig']);
+            saveas(txHDebugFigMap, [absPathToSavePlots, 'debugFigMap.png']);
+            absPathToSavePlots = [absPathWithPreFixToSaveDebugFigs, ...
+                'Series_', num2str(idxSeries), ...
+                '_OutputFile_', num2str(idxOutFile), '_rx_'];
+            saveas(rxHDebugFig, [absPathToSavePlots, 'debugFig.fig']);
+            saveas(rxHDebugFig, [absPathToSavePlots, 'debugFig.png']);
+            saveas(rxHDebugFigMap, [absPathToSavePlots, 'debugFigMap.fig']);
+            saveas(rxHDebugFigMap, [absPathToSavePlots, 'debugFigMap.png']);
+            close all;
+        end
     end
 end
 assert(all(~isnan(pathLossesWithGpsInfo(1:end))));

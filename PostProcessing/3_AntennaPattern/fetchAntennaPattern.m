@@ -94,37 +94,22 @@ disp('    Done!')
 disp(' ')
 disp('    Plotting...')
 
-[hPat2DRef, hPat3DRef, ...
-    hInterPat3DOnLineLinear, hInterPat3DOnLineDb, ...
-    hInterPat3DWeightedSumLinear, hInterPat3DWeightedSumDb] ...
-    = plotAntPattern(pat28GAzNorm, pat28GElNorm);
+% Plots the normalization results and save the figures.
+%
+% function [ hPat2DRef, hPat3DRef, ...
+%     hInterPat3DOnLineLinear, hInterPat3DOnLineDb, ...
+%     hInterPat3DWeightedSumLinear, hInterPat3DWeightedSumDb ] ...
+%     = plotAntPattern( patAz, patEl, absPathWithPrefixToSavePlots )
+%
+absPathWithPrefixToSaveNormPlots = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
+    'normalized_');
+plotAntPattern(pat28GAzNorm, pat28GElNorm, ...
+    absPathWithPrefixToSaveNormPlots);
 
-% Save the plots.
-absPathCurFile = fullfile(ABS_PATH_TO_SAVE_PLOTS, 'pat2DRef');
-saveas(hPat2DRef, [absPathCurFile, '.png']);
-saveas(hPat2DRef, [absPathCurFile, '.fig']);
-
-absPathCurFile = fullfile(ABS_PATH_TO_SAVE_PLOTS, 'pat3DRef');
-saveas(hPat3DRef, [absPathCurFile, '.png']);
-saveas(hPat3DRef, [absPathCurFile, '.fig']);
-
-absPathCurFile = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
-    'interPat3DOnLineLinear');
-saveas(hInterPat3DOnLineLinear, [absPathCurFile, '.png']);
-saveas(hInterPat3DOnLineLinear, [absPathCurFile, '.fig']);
-
-absPathCurFile = fullfile(ABS_PATH_TO_SAVE_PLOTS, 'interPat3DOnLineDb');
-saveas(hInterPat3DOnLineDb, [absPathCurFile, '.png']);
-saveas(hInterPat3DOnLineDb, [absPathCurFile, '.fig']);
-
-absPathCurFile = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
-    'interPat3DWeightedSumLinear');
-saveas(hInterPat3DWeightedSumLinear, [absPathCurFile, '.png']);
-saveas(hInterPat3DWeightedSumLinear, [absPathCurFile, '.fig']);
-
-absPathCurFile = fullfile(ABS_PATH_TO_SAVE_PLOTS, 'interPat3DWeightedSumDb');
-saveas(hInterPat3DWeightedSumDb, [absPathCurFile, '.png']);
-saveas(hInterPat3DWeightedSumDb, [absPathCurFile, '.fig']);
+% Do the same for the input pattern just for reference.
+absPathWithPrefixToSaveOrigPlots = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
+    'original_');
+plotAntPattern(pat28GAz, pat28GEl, absPathWithPrefixToSaveOrigPlots);
 
 disp('    Done!')
 
