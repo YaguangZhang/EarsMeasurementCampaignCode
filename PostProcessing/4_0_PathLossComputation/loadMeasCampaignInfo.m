@@ -38,6 +38,9 @@ F_S = 1.04 * 10^6;
 TX_LAT = 38.983899;
 TX_LON = -76.486682;
 
+% The downconverter gain at the RX side.
+DOWNCONVERTER_GAIN_IN_DB = 13.3; 
+
 %% Necessary Unit Conversion
 TX_HEIGHT_M = distdim(TX_HEIGHT_FEET,'feet','meters');
 

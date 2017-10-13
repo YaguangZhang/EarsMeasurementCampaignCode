@@ -2,8 +2,9 @@ function [ pathLossInDb ] ...
     = computePathLossForCurSignal(curSignal, txPower, ...
     rxGain, noiseEliminationFct, powerShiftsForCali, FlagCutHead)
 %COMPUTEPATHLOSSFORCURSIGNAL Compute the path loss for the input complex
-%array curSignal. Note that here antGain = 0, i.e. the path actually includes the TX & RX
-%antennas, because antGain will depend on the TX & RX setups.
+%array curSignal. Note that here antGain = 0, i.e. the path actually
+%includes the TX & RX antennas, because actual TX and RX ant. gains will
+%depend on the TX & RX setups.
 %
 % Inputs:
 %   - curSignal
@@ -73,13 +74,13 @@ catch
     Fs = 1.04 * 10^6;
 end
 
-% Sample rate used for GnuRadio.
+% The downconverter gain at the RX side.
 try
-    txInfoLogs = evalin('base', 'TX_INFO_LOGS');
+    downConvGainInDb = evalin('base', 'DOWNCONVERTER_GAIN_IN_DB');
 catch
-    warning('Data from TxInfo.txt files TX_INFO_LOGS not found in the base workspace.')
-    warning('Will load the data via script loadMeasCampaignInfo.m.')
-    loadMeasCampaignInfo;
+    warning('The gain for the downconverter RX_INFO_LOGS not found in the base workspace.')
+    warning('Will set it to 0.')
+    downConvGainInDb = 0;
 end
 
 %% LPF
@@ -154,10 +155,16 @@ calcPInDbShifted = 10.*log10(calcP) - rxGain;
 measPInDb = calcPInDbShifted + powerShiftsForCali;
 
 %% Antenna Nomalization
+% We will deal with the antenna gain with a more dynamic model (i.e.
+% compute the TX / RX LOS path gain in 3D with a constructed antenna
+% pattern), instead of setting it to be a fix number.
 antGain = 0;
 
+%% Downconverter Gain
+% We have instialized downConvGainInDb at the beginning of this function.
+
 %% Final Result
-pathLossInDb = txPower + antGain - measPInDb;
+pathLossInDb = txPower + antGain + downConvGainInDb - measPInDb;
 
 end
 % EOF
