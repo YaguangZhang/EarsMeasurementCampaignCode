@@ -27,13 +27,13 @@ function [ curContiPathLossesWithGpsInfo, absPathOutFile ] ...
 % We will try loading them from the base workspace because these parameters
 % should stay the same for the whole measurement campaign.
 
-% TX power into upconverter in dBm.
+% TX power (after the upconverter) in dBm.
 try
     txPower = evalin('base', 'txPower');
 catch
-    warning('TX power into upconverter txPower not found in the base workspace.')
-    warning('Will use the default value -8 dBm.')
-    txPower  = -8;
+    warning('TX power (after the upconverter) txPower not found in the base workspace.')
+    warning('Will use the default value -23 dBm.')
+    txPower  = -23;
 end
 
 % Sample rate used for GnuRadio.

@@ -10,7 +10,7 @@ function [ pathLossInDb ] ...
 %   - curSignal
 %     A complex array representing the Rx signal.
 %   - txPower
-%     TX power into upconverter in dBm.
+%     TX power (after upconverter) in dBm.
 %   - rxGain
 %     A scalar. The Gnu Radio gain (in dB) for curSignal.
 %   - noiseEliminationFct

@@ -21,8 +21,14 @@ function [ pathLossInDb, absPathOutFile ] ...
 
 %% Parameters
 
-% TX power into upconverter in dBm.
-txPower = -8;
+% TX power (after the upconverter) in dBm.
+try
+    txPower = evalin('base', 'txPower');
+catch
+    warning('TX power (after the upconverter) txPower not found in the base workspace.')
+    warning('Will use the default value -23 dBm.')
+    txPower  = -23;
+end
 
 %% Load Data
 

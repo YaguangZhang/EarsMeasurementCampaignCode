@@ -102,7 +102,7 @@ load(ABS_PATH_TO_ANT_PAT_FILE);
 load(ABS_PATH_TO_TX_INFO_LOGS_FILE);
 % Sample rate used for GnuRadio. Needed by computePathLossForOutFileDir.m.
 Fs = F_S;
-% TX power into upconverter in dBm.
+% TX power (after the upconverter) in dBm.
 txPower  = TX_POWER_DBM;
 
 disp('    Done!')

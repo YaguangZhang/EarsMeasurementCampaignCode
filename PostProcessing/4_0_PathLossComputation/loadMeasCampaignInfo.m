@@ -27,7 +27,7 @@ ABS_PATH_TO_SAVE_RESULTS = fullfile(ABS_PATH_TO_EARS_SHARED_FOLDER, ...
 %% Hard Coded Parameters
 
 % Tx Power in dBm.
-TX_POWER_DBM = -8;
+TX_POWER_DBM = 23;
 % Tx tower height in feet.
 TX_HEIGHT_FEET = 90;
 
@@ -39,7 +39,7 @@ TX_LAT = 38.983899;
 TX_LON = -76.486682;
 
 % The downconverter gain at the RX side.
-DOWNCONVERTER_GAIN_IN_DB = 13.3; 
+DOWNCONVERTER_GAIN_IN_DB = 13.4; 
 
 %% Necessary Unit Conversion
 TX_HEIGHT_M = distdim(TX_HEIGHT_FEET,'feet','meters');
