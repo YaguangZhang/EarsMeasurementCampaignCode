@@ -78,7 +78,7 @@ end
 try
     downConvGainInDb = evalin('base', 'DOWNCONVERTER_GAIN_IN_DB');
 catch
-    warning('The gain for the downconverter RX_INFO_LOGS not found in the base workspace.')
+    warning('The gain for the downconverter DOWNCONVERTER_GAIN_IN_DB not found in the base workspace.')
     warning('Will set it to 0.')
     downConvGainInDb = 0;
 end

@@ -55,7 +55,7 @@ NUM_SIGMA_FOR_THRESHOLD = 3.5;
 
 % Set this to true if it is necessary to generate the debug figure for
 % computing antenna gains.
-FLAG_DEBUG = true;
+FLAG_DEBUG = false;
 %% Before Processing the Data
 
 disp(' ------------------- ')
