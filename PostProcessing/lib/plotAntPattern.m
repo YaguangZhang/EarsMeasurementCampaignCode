@@ -63,6 +63,12 @@ title('Elevation Sweep Data'); grid minor;
 curAxis = axis; axis([min(angles), max(angles), curAxis(3:4)]);
 xlabel('Elevation'); ylabel('Normalized Amplitude (dB)');
 
+% Also generate dedicated plots for the antenna patterns.
+[~, ~, hPat2DAz] = plotAntPlanePat('', patAz.azs, ...
+    antPatLinearToDb(patAz.amps), true);
+[~, ~, hPat2DEl] = plotAntPlanePat('', patEl.els, ...
+    antPatLinearToDb(patEl.amps), true);
+
 %% 3D Plot
 
 % Plot the interpolation results.
@@ -110,6 +116,14 @@ if nargin>2
     absPathCurFile = [absPathWithPrefixToSavePlots, 'interPat3DWeightedSumDb'];
     saveas(hInterPat3DWeightedSumDb, [absPathCurFile, '.png']);
     saveas(hInterPat3DWeightedSumDb, [absPathCurFile, '.fig']);
+    
+    absPathCurFile = [absPathWithPrefixToSavePlots, 'hPat2DAz'];
+    saveas(hPat2DAz, [absPathCurFile, '.png']);
+    saveas(hPat2DAz, [absPathCurFile, '.fig']);
+    
+    absPathCurFile = [absPathWithPrefixToSavePlots, 'hPat2DEl'];
+    saveas(hPat2DEl, [absPathCurFile, '.png']);
+    saveas(hPat2DEl, [absPathCurFile, '.fig']);
 end
 
 end

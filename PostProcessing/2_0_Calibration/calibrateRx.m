@@ -20,6 +20,14 @@ ABS_PATH_TO_CALI_DATA = fullfile(ABS_PATH_TO_EARS_SHARED_FOLDER, ...
     'Data', '20170615_Calibration');
 ABS_PATH_TO_SAVE_PLOTS = fullfile(ABS_PATH_TO_EARS_SHARED_FOLDER, ...
     'PostProcessingResults', 'Calibration');
+
+% Set this to true if you want figures to be generated silently.
+FLAG_GEN_PLOTS_SILENTLY = true;
+% Set this to be true to eliminate noise (i.e. compute noise sigma) using
+% signal amplitude; Otherwise, we will eliminate the noise in the real and
+% imaginary parts of the signal separately.
+FLAG_NOISE_ELI_VIA_AMP = true;
+
 % Set this to be true to use the filtered (by GunRadio) outputs; Otherwise,
 % the original samples without post-processing will be used.
 FLAG_USE_FILTERED_OUTPUT_FILES = false;
@@ -33,11 +41,6 @@ calDataDirNamePrefix = 'Gain_';
 % Reference received power measured by the spectrum analyzer.
 measPowers = {[-19;-24;-29;-34;-39;-44;-49;-54;-59], ...
     [-39.6;-44.6;-49.6;-54.6;-59.6;-64.6;-69.6]};
-
-% Set this to be true to eliminate noise (i.e. compute noise sigma) using
-% signal amplitude; Otherwise, we will eliminate the noise in the real and
-% imaginary parts of the signal separately.
-FLAG_NOISE_ELI_VIA_AMP = true;
 
 % Manually ignore some of the measurements.
 %   Update 20170927 - Remove point 1 from set 2 - Quote from Professor
@@ -70,13 +73,10 @@ timeLengthAtCenterToUse = 1; % In second.
 % It seems the 76dB gain dataset (set #1 needs more noise elimination).
 NUMS_SIGMA_FOR_THRESHOLD = [1, 1].*3.5;
 
-% Set this to true if you want figures to be generated silently.
-FLAG_GEN_PLOTS_SILENTLY = true;
-
 % For any figure generated, a .pgn screen shot is always saved; Set this to
 % be true to also save a .fig version (which may dramatically slow down the
 % program).
-FLAG_SAVE_FIG_COPY = false;
+FLAG_SAVE_FIG_COPY = true;
 
 % Parameters to overwrite when using the 60 kHz / 5 kHz LPF implemented in
 % Matlab.
@@ -597,6 +597,11 @@ axisToSet = [ min(calPs) max(calPs) ...
 for idxDataset = 1:numDatasets
     xs = calculatedPowers{idxDataset};
     ys = measPowers{idxDataset};
+
+% % For plotting, only show points to fit.
+%  boolsPtsToFit = BOOLS_MEAS_TO_FIT{idxDataset}';
+% xsToShow = xs((~isinf(ys))&boolsPtsToFit);
+%  ysToShow = ys((~isinf(ys))&boolsPtsToFit);
     
     % For plotting, only avoid points with inf as calculated power.
     xsToShow = xs(~isinf(ys));

@@ -22,6 +22,11 @@ function [ gain, hDebugFig, hDebugFigMap] ...
 %
 % Yaguang Zhang, Purdue, 10/04/2017
 
+% Set this to be true to show a fully interpolated 3D antenna pattern;
+% Otherwise, only the reference azimuth and elevation patterns will be
+% shown.
+FLAG_3D_ATN_PAT = true;
+
 if nargin<11
     FLAG_DEBUG = false;
 end
@@ -103,12 +108,17 @@ el = rad2deg(elR);
 % Now get the antenna gain from the interpolated patten. We will
 % interpolate directly using the linear amplitudes of the antenna pattern
 % with the "WeightedSum" method.
+if FLAG_DEBUG
+    FLAG_INTER_IN_DB = false;
+    numPtsPerDim = 1000; % Controls the interpolation density.
+end
+INTER_METHOD = 'WeightedSum';
 amps = antPatInter(antPatAz, antPatEl, az, el, 'WeightedSum');
 
 gain = antPatLinearToDb(amps);
 
 % Plot the positions.
-if FLAG_DEBUG    
+if FLAG_DEBUG
     % For scaling the plotted components.
     gridStep = 1; % In meter.
     gridWidth = sqrt(xDiff^2+yDiff^2)/2; % In meter.
@@ -149,12 +159,32 @@ if FLAG_DEBUG
     Z = (-d - (normal(1)*X) - (normal(2)*Y))/normal(3);
     
     % Antenna pattern.
-    antPatAmpInDb = antPatLinearToDb([antPatAz.amps; antPatEl.amps]);
-    antPatRelAmpInDb = antPatAmpInDb-min(antPatAmpInDb);
-    [antPatPtsXs, antPatPtsYx, antPatPtsZs] ...
-        = sph2cart(deg2rad([antPatAz.azs; antPatEl.azs]), ...
-        deg2rad([antPatAz.els; antPatEl.els]), antPatRelAmpInDb);
-    antPatPts = [antPatPtsXs, antPatPtsYx, antPatPtsZs];
+    if FLAG_3D_ATN_PAT
+        [ antPatPtsXs,antPatPtsYx,antPatPtsZs, ...
+            antPatAmpInDb, antPatAmpInDbRel ] ...
+            = interpAntPatsIn3D( ...
+            antPatAz, antPatEl, ...
+            numPtsPerDim, ...
+            FLAG_INTER_IN_DB, INTER_METHOD, true);
+        % Rearrange the outputs to vector columns and scale the coordinates
+        % to a max length.
+        antPatAmpInDb = antPatAmpInDb(1:end)';
+        [ maxAntPatAmpInDbRel ] = max(antPatAmpInDbRel(1:end));
+        scalingFactor = (gridWidth/2*0.8)/maxAntPatAmpInDbRel;
+        antPatPts = [antPatPtsXs(1:end); ...
+            antPatPtsYx(1:end); ...
+            antPatPtsZs(1:end)]' ...
+            .*scalingFactor;
+    else
+        antPatAmpInDb = antPatLinearToDb([antPatAz.amps; antPatEl.amps]);
+        antPatRelAmpInDb = antPatAmpInDb-min(antPatAmpInDb);
+        [antPatPtsXs, antPatPtsYx, antPatPtsZs] ...
+            = sph2cart(deg2rad([antPatAz.azs; antPatEl.azs]), ...
+            deg2rad([antPatAz.els; antPatEl.els]), antPatRelAmpInDb);
+        antPatPts = [antPatPtsXs, antPatPtsYx, antPatPtsZs];
+    end
+    
+    % Convert the pattern to the new coordinate system.
     newCoorMatR = [newBasisX, newBasisY, newBasisZ]';
     antPatPtsNewCoor = bsxfun(@plus, antPatPts*newCoorMatR, ...
         [x0, y0, alt0]);
@@ -164,19 +194,21 @@ if FLAG_DEBUG
     % The UTM illustration with all the details.
     hold on; colormap jet;
     % The origin and destination.
-    hOri = plot3(x0, y0, alt0, '^r', 'MarkerFaceColor', 'red');
-    hDes = plot3(x, y, alt, 'k.');
+    hOri = plot3(x0, y0, alt0, '^w', 'MarkerFaceColor', 'red');
+    hDes = plot3(x, y, alt, 'sw', 'MarkerFaceColor', 'blue');
     % Link them with a gray line.
     plot3([x0; x], [y0, y], [alt0, alt], '--', ...
         'Color', ones(1,3)*0.7);
     % Plot the origin antenna orientation.
-    hOriOri = plot3([x0, xNewX], [y0, yNewX], [alt0, zNewX], '-r');
+    axisLineWidth = 2;
+    hOriOri = plot3([x0, xNewX], [y0, yNewX], [alt0, zNewX], ...
+        '-r', 'LineWidth', axisLineWidth);
     % Plot the Cartesian coordinate system defined by the origin antenna
     % orientation.
     hNewY = plot3([x0, xNewY], [y0, yNewY], ...
-        [alt0, zNewY], '-g');
+        [alt0, zNewY], '-g', 'LineWidth', axisLineWidth);
     hNewZ = plot3([x0, xNewZ], [y0, yNewZ], ...
-        [alt0, zNewZ], '-b');
+        [alt0, zNewZ], '-b', 'LineWidth', axisLineWidth);
     % Plot the new x-y plane. We use plot3 instead of mesh because the
     % later one will mess up the color bar for plot3k.
     hNewXY = plot3(X(:), Y(:), Z(:), '.', 'Color', ones(1,3)*0.9);
@@ -207,8 +239,8 @@ if FLAG_DEBUG
     hDebugFigMap = figure('units','normalized', ...
         'outerposition',[0.2 0.05 0.6 0.9]);
     hold on;
-    hOri = plot3(lon0, lat0, alt0, '^r', 'MarkerFaceColor', 'red');
-    hDes = plot3(lon, lat, alt, 'k.');
+    hOri = plot3(lon0, lat0, alt0, '^w', 'MarkerFaceColor', 'red');
+    hDes = plot3(lon, lat, alt, 'sw', 'MarkerFaceColor', 'blue');
     plot3([lon0; lon], [lat0, lat], [alt0, alt], '--', ...
         'Color', ones(1,3)*0.7);
     hold off; plot_google_map('MapType', 'satellite');
