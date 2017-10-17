@@ -9,18 +9,29 @@ function [ boolsValidPathlosses, ...
 %    - boolsValidPathlosses
 %      A bool vector indicating whether the row records in
 %      pathLossesWithGpsInfo are valid.
+%    - relPathsOutFilesUnderDataFolder
+%      Optional. When present, it contains the relative paths for the row
+%      records in boolsValidPathlosses, and we will check them for invalid
+%      data listed in relPathSegInvalidData.
 % Yaguang Zhang, Purdue, 10/16/2017
 
-% Some data collected are not valid from the very begining. For example,
-% the '20170619_LargeScale/Series_9' data are not valid because the
-% measurement was interrupted by a rain.
-relPathSegInvalidData = '20170619_LargeScale/Series_9';
-boolsInvalidData = cellfun(@(p) contains(p, relPathSegInvalidData), ...
-    relPathsOutFilesUnderDataFolder);
-if any(boolsInvalidData)
-    warning([num2str(sum(boolsInvalidData)), ...
-        ' specified invalid data detected.', ...
-        ' We will ignore the cooresponding results.']);
+if nargin >1
+    % Some data collected are not valid from the very begining. For example,
+    % the '20170619_LargeScale/Series_9' data are not valid because the
+    % measurement was interrupted by a rain.
+    %   Todo: add supports for multiple directories.
+    relPathSegInvalidData = '20170619_LargeScale/Series_9';
+    
+    boolsInvalidData = cellfun(@(p) contains(p, relPathSegInvalidData), ...
+        relPathsOutFilesUnderDataFolder);
+    if any(boolsInvalidData)
+        warning([num2str(sum(boolsInvalidData)), ...
+            ' specified invalid data detected.', ...
+            ' We will ignore the cooresponding results.']);
+    end
+else
+    [numRowRecords, ~] = size(pathLossesWithGpsInfo);
+    boolsInvalidData = zeros(numRowRecords, 1);
 end
 
 % Then, check the GPS info.

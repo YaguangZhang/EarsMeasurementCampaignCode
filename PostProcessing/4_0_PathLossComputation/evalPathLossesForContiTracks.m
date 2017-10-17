@@ -318,8 +318,69 @@ for idxTrack = 1:numTracks
     saveas(hPathLossesOnMap, [pathPathossesOnMapFileToSave, '_map.png']);
     saveas(hPathLossesOnMap, [pathPathossesOnMapFileToSave, '_map.fig']);
     saveas(hPathLossesOverDist, [pathPathossesOnMapFileToSave, '_dist.png']);
-    saveas(hPathLossesOverDist, [pathPathossesOnMapFileToSave, '_dist.fig']);    
+    saveas(hPathLossesOverDist, [pathPathossesOnMapFileToSave, '_dist.fig']);
 end
+
+disp('    Done!')
+disp('')
+
+% Plot all non-reflection tracks on the same plot.
+disp('    Plotting all non-reflection tracks on the same map...');
+
+hNonRefPathLossesOnMap = figure; hold on; colormap jet;
+hTx = plot3(TX_LON, TX_LAT, TX_HEIGHT_M, '^w', 'MarkerFaceColor', 'b');
+% Cache all the non-reflection path loss records for plotting.
+validNonRefPathLossesWithValidGps = [];
+for idxTrack = 1:numTracks
+    if ismember(idxTrack, contiOutFileIndicesReflection)
+        disp(['        Skipping reflection track ', num2str(idxTrack)])
+    else
+        curPathLossesWithGpsInfo = contiPathLossesWithGpsInfo{idxTrack};
+        
+        [boolsValidPathlosses, ...
+            boolsInvalidCoor, boolsInfPathloss, boolsInvalidData]  ...
+            = checkValidityOfPathLossesWithGpsInfo(curPathLossesWithGpsInfo);
+        
+        validPathLossesWithValidGps ...
+            = curPathLossesWithGpsInfo(boolsValidPathlosses,:);
+        infPathLossesWithValidGps = curPathLossesWithGpsInfo( ...
+            (~boolsInvalidData) & (~boolsInvalidCoor) & boolsInfPathloss,:);
+        
+        validNonRefPathLossesWithValidGps ...
+            = [validNonRefPathLossesWithValidGps;...
+            validPathLossesWithValidGps];
+        
+        plot(infPathLossesWithValidGps(:,3), infPathLossesWithValidGps(:,2), 'w.');
+        plot(infPathLossesWithValidGps(boolsInfPathloss,3), ...
+            infPathLossesWithValidGps(boolsInfPathloss,2), 'kx');
+    end
+end
+
+plot3k([validNonRefPathLossesWithValidGps(:,3), ...
+    validNonRefPathLossesWithValidGps(:,2), ...
+    validNonRefPathLossesWithValidGps(:,1)], 'Marker', {'.', 12});
+% The command plot_google_map messes up the color legend of plot3k, so we
+% will have to fix it here.
+hCb = findall( allchild(hNonRefPathLossesOnMap), 'type', 'colorbar');
+hCb.Ticks = linspace(1,length(colormap),length(hCb.TickLabels));
+plot_google_map('MapType','satellite');
+hold off; grid on; view(0, 90);
+legend(hTx, 'TX', ...
+    'Location','northeast');
+curTitleLabel = strrep(curFileName, '_', '-');
+if ismember(idxTrack, contiOutFileIndicesReflection)
+    title({'Path Losses on Map (Reflection)', curTitleLabel});
+else
+    title({'Path Losses on Map (Conti. Track)', curTitleLabel});
+end
+xlabel('Lon'); ylabel('Lat'); zlabel('Path Loss (dB)');
+
+% Save the plot.
+pathPathossesOnMapFileToSave = fullfile(...
+    ABS_PATH_TO_SAVE_PLOTS, ...
+    'allNonReflectionTracks');
+saveas(hNonRefPathLossesOnMap, [pathPathossesOnMapFileToSave, '_map.png']);
+saveas(hNonRefPathLossesOnMap, [pathPathossesOnMapFileToSave, '_map.fig']);
 
 disp('    Done!')
 
