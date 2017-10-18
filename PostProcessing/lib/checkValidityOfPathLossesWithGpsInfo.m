@@ -13,6 +13,7 @@ function [ boolsValidPathlosses, ...
 %      Optional. When present, it contains the relative paths for the row
 %      records in boolsValidPathlosses, and we will check them for invalid
 %      data listed in relPathSegInvalidData.
+%
 % Yaguang Zhang, Purdue, 10/16/2017
 
 if nargin >1

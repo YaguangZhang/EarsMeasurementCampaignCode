@@ -290,7 +290,8 @@ for idxTrack = 1:numTracks
     
     % Plot path losses over distance from Tx.
     validPLWithValidGPSCell = num2cell(validPathLossesWithValidGps, 2);
-    distsFromTx = cellfun(@(s) 1000.*lldistkm([s(2) s(3)],[TX_LAT,TX_LON]), ...
+    distsFromTx = cellfun(@(s) ...
+        norm([1000.*lldistkm([s(2) s(3)],[TX_LAT,TX_LON]), TX_HEIGHT_M-s(4)]), ...
         validPLWithValidGPSCell);
     
     hPathLossesOverDist = figure; hold on; colormap jet;

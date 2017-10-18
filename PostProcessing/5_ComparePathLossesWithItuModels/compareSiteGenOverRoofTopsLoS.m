@@ -98,7 +98,8 @@ validRelPathsOutFilesUnderDataFolder ...
 validPLWithValidGPSCell = num2cell(validPathLossesWithValidGps, 2);
 % Compute the TX and RX pair distances. Note that we will use the averaged
 % GPS coordinates here.
-distsFromTx = cellfun(@(s) 1000.*lldistkm([s(4) s(5)],[TX_LAT,TX_LON]), ...
+distsFromTx = cellfun(@(s) ...
+    norm([1000.*lldistkm([s(5) s(6)],[TX_LAT,TX_LON]), TX_HEIGHT_M-s(7)]), ...
     validPLWithValidGPSCell);
 
 %% Load the Category Files
@@ -209,16 +210,16 @@ xlabel('Distance to Tx (m)'); ylabel(''); zlabel('Path Loss (dB)');
 hold off;
 
 % Save the plots.
-absPathToSavePlots = [ABS_PATH_TO_SAVE_PLOTS, 'ituSiteGenOverRoofsLoS'];
-saveas(hResultItuSiteGenOverRoofsLoS, [absPathToSavePlots, 'debugFig.fig']);
-saveas(hResultItuSiteGenOverRoofsLoS, [absPathToSavePlots, 'debugFig.png']);
+absPathToSavePlots = fullfile(ABS_PATH_TO_SAVE_PLOTS, 'ituSiteGenOverRoofsLoS');
+saveas(hResultItuSiteGenOverRoofsLoS, [absPathToSavePlots, '.fig']);
+saveas(hResultItuSiteGenOverRoofsLoS, [absPathToSavePlots, '.png']);
 
-absPathToSavePlots = [ABS_PATH_TO_SAVE_PLOTS, 'compBTLWithItuSiteGenOverRoofsLoS'];
-saveas(hCompBTLWithItuSiteGenOverRoofsLoS, [absPathToSavePlots, 'debugFig.fig']);
-saveas(hCompBTLWithItuSiteGenOverRoofsLoS, [absPathToSavePlots, 'debugFig.png']);
+absPathToSavePlots = fullfile(ABS_PATH_TO_SAVE_PLOTS, 'compBTLWithItuSiteGenOverRoofsLoS');
+saveas(hCompBTLWithItuSiteGenOverRoofsLoS, [absPathToSavePlots, '.fig']);
+saveas(hCompBTLWithItuSiteGenOverRoofsLoS, [absPathToSavePlots, '.png']);
 
-absPathToSavePlots = [ABS_PATH_TO_SAVE_PLOTS, 'compBTLLoSOnlyWithItuSiteGenOverRoofsLoS'];
-saveas(hCompBTLLoSOnlyWithItuSiteGenOverRoofsLoS, [absPathToSavePlots, 'debugFig.fig']);
-saveas(hCompBTLLoSOnlyWithItuSiteGenOverRoofsLoS, [absPathToSavePlots, 'debugFig.png']);
+absPathToSavePlots = fullfile(ABS_PATH_TO_SAVE_PLOTS, 'compBTLLoSOnlyWithItuSiteGenOverRoofsLoS');
+saveas(hCompBTLLoSOnlyWithItuSiteGenOverRoofsLoS, [absPathToSavePlots, '.fig']);
+saveas(hCompBTLLoSOnlyWithItuSiteGenOverRoofsLoS, [absPathToSavePlots, '.png']);
 
 % EOF

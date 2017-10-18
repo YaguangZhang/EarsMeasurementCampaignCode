@@ -55,7 +55,7 @@ NUM_SIGMA_FOR_THRESHOLD = 3.5;
 
 % Set this to true if it is necessary to generate the debug figure for
 % computing antenna gains.
-FLAG_DEBUG = true;
+FLAG_DEBUG = false;
 %% Before Processing the Data
 
 disp(' ------------------- ')
@@ -143,11 +143,11 @@ disp('    Computing path losses...')
 % Compute the path losses and save them into a matrix together with the GPS
 % info.
 numOutFiles = sum(cellfun(@(d) length(d), allOutFilesDirs));
-% More specifically, each row is a [path loss (dB), lat, lon, latM, lonM]
-% array, where (lat, lon) is the GPS coordinates for the individule .out
-% file, while (latM, latM) is the average (via median) coordinates for all
-% the locked GPS samples on that site.
-pathLossesWithGpsInfo = nan(numOutFiles, 5);
+% More specifically, each row is a [path loss (dB), lat, lon, alt, latM,
+% lonM, altM] array, where (lat, lon) is the GPS coordinates for the
+% individule .out file, while (latM, latM) is the average (via median)
+% coordinates for all the locked GPS samples on that site.
+pathLossesWithGpsInfo = nan(numOutFiles, 7);
 pathLossCounter = 1;
 % Also save the meta info needed to map the path loss back to the
 % measurements. We choose to save the full file path to the .out file for
@@ -217,7 +217,8 @@ for idxSeries = 1:numSeries
         
         % Store the results, considering the antenna gains.
         pathLossesWithGpsInfo(pathLossCounter,:) ...
-            = [pathLossInDb + txGain + rxGain, lat, lon, latM, lonM];
+            = [pathLossInDb + txGain + rxGain, lat, lon, alt, ...
+            latM, lonM, altM];
         absPathsOutFiles{pathLossCounter} = absPathOutFile;
         pathLossCounter = pathLossCounter+1;
         
@@ -313,12 +314,12 @@ xlabel('Lon'); ylabel('Lat'); zlabel('Path Loss (dB)');
 
 % Plot path losses on map with average GPS coordinates.
 hPathLossesOnMap = figure; hold on; colormap jet;
-plot(validPathLossesWithValidGps(:,5), validPathLossesWithValidGps(:,4), 'w.');
+plot(validPathLossesWithValidGps(:,6), validPathLossesWithValidGps(:,5), 'w.');
 plot(infPathLossesWithValidGps(:,3), ...
     infPathLossesWithValidGps(:,2), 'kx');
 hTx = plot(TX_LON, TX_LAT, '^w', 'MarkerFaceColor', 'b');
 plot_google_map('MapType','satellite');
-plot3k([validPathLossesWithValidGps(:,5), validPathLossesWithValidGps(:,4), ...
+plot3k([validPathLossesWithValidGps(:,6), validPathLossesWithValidGps(:,5), ...
     validPathLossesWithValidGps(:,1)], 'Marker', {'.', 12});
 % The command plot_google_map messes up the color legend of plot3k, so we
 % will have to fix it here.
@@ -330,7 +331,8 @@ xlabel('Lon'); ylabel('Lat'); zlabel('Path Loss (dB)');
 
 % Plot path losses over distance from Tx.
 validPLWithValidGPSCell = num2cell(validPathLossesWithValidGps, 2);
-distsFromTx = cellfun(@(s) 1000.*lldistkm([s(2) s(3)],[TX_LAT,TX_LON]), ...
+distsFromTx = cellfun(@(s) ...
+    norm([1000.*lldistkm([s(2) s(3)],[TX_LAT,TX_LON]), TX_HEIGHT_M-s(4)]), ...
     validPLWithValidGPSCell);
 
 hPathLossesOverDist = figure; colormap jet;

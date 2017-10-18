@@ -44,4 +44,8 @@ evalPathLossesForContiTracks;
 
 plotBasicTransLossesByCategory;
 
+%% 5_ComparePathLossesWithItuModels: Compute Ref ITU Results
+
+compareSiteGenOverRoofTopsLoS;
+
 % EOF
