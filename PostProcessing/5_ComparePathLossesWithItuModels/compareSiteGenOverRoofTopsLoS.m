@@ -149,7 +149,7 @@ plot(dsInM, pathLossesInDbMeans - 3.*pathLossesInDbVars, '-.', ...
     'Color', ones(1,3).*0.7);
 set(gca, 'XScale', 'log'); grid on;
 curAxis = axis; axis([min(dsInM), max(dsInM), curAxis(3:4)]);
-newXTicks = [10,100,200,500,1000];
+newXTicks = [1,10,100,200,500,1000];
 set(gca, 'XTickLabels',newXTicks);
 set(gca, 'XTick',newXTicks);
 hLegend = legend([hMean, h3Sigma], 'Mean', '3 sigma range');
@@ -163,7 +163,7 @@ hCompBTLWithItuSiteGenOverRoofsLoS = figure; hold on; colormap jet;
 plot3k([distsFromTx, zeros(length(distsFromTx),1), ...
     validPathLossesWithValidGps(:,1)], 'Marker', {'.', 6});
 curAxis = axis;
-axis([min(distsFromTx)-10, max(distsFromTx)+100, curAxis(3:6)]);
+axis([min(distsFromTx, 1), max(distsFromTx)+100, curAxis(3:6)]);
 % ITU model results.
 yPlaneZeroPadding = zeros(length(dsInM),1);
 hMean = plot3(dsInM, yPlaneZeroPadding, pathLossesInDbMeans, 'k-');
@@ -173,7 +173,7 @@ plot3(dsInM, yPlaneZeroPadding, pathLossesInDbMeans - 3.*pathLossesInDbVars, '-.
     'Color', ones(1,3).*0.7);
 view(0, 0); 
 set(gca, 'XScale', 'log'); grid on;
-newXTicks = [10,100,200,500,1000];
+newXTicks = [1,10,100,200,500,1000];
 set(gca, 'XTickLabels',newXTicks);
 set(gca, 'XTick',newXTicks);
 hLegend = legend([hMean, h3Sigma], 'Mean', '3 sigma range', ...
@@ -189,7 +189,7 @@ hCompBTLLoSOnlyWithItuSiteGenOverRoofsLoS = figure; hold on; colormap jet;
 plot3k([distsFromTx(boolsLoSPathLossRecs), zeros(sum(boolsLoSPathLossRecs),1), ...
     validPathLossesWithValidGps(boolsLoSPathLossRecs,1)], 'Marker', {'.', 6});
 curAxis = axis;
-axis([min(distsFromTx)-10, max(distsFromTx)+100, curAxis(3:6)]);
+axis([min(distsFromTx, 1), max(distsFromTx)+100, curAxis(3:6)]);
 % ITU model results.
 yPlaneZeroPadding = zeros(length(dsInM),1);
 hMean = plot3(dsInM, yPlaneZeroPadding, pathLossesInDbMeans, 'k-');
@@ -199,7 +199,7 @@ plot3(dsInM, yPlaneZeroPadding, pathLossesInDbMeans - 3.*pathLossesInDbVars, '-.
     'Color', ones(1,3).*0.7);
 view(0, 0); 
 set(gca, 'XScale', 'log'); grid on;
-newXTicks = [10,100,200,500,1000];
+newXTicks = [1,10,100,200,500,1000];
 set(gca, 'XTickLabels',newXTicks);
 set(gca, 'XTick',newXTicks);
 hLegend = legend([hMean, h3Sigma], 'Mean', '3 sigma range', ...
