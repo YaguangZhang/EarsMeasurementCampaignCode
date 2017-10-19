@@ -67,7 +67,10 @@ for idxPar=1:length(allSeriesParentDirs)
     txInfo = rdir(fullfile(ABS_PATH_TO_DATA, curParFolderName, ...
         'TxInfo.txt'));
     
-    % Find all photos for the measurement sites.
+    % Find all photos for the measurement sites. We have manually relabeled
+    % the photos according to their measurement sites and put them under 
+    %    Annapolis Measurement Campaign/PostProcessingResults
+    %                                  /SummaryReport/plots
     photosAntenJpg = rdir(fullfile(ABS_PATH_TO_PLOTS, ...
         [curParFolderName, '_antenna*.jpg']));
     photosSetupJpg = rdir(fullfile(ABS_PATH_TO_PLOTS, ...
