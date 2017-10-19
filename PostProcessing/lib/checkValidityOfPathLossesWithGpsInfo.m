@@ -21,7 +21,7 @@ if nargin >1
     % the '20170619_LargeScale/Series_9' data are not valid because the
     % measurement was interrupted by a rain.
     %   Todo: add supports for multiple directories.
-    relPathSegInvalidData = '20170619_LargeScale/Series_9';
+    relPathSegInvalidData = fullfile('20170619_LargeScale', 'Series_9');
     
     boolsInvalidData = cellfun(@(p) contains(p, relPathSegInvalidData), ...
         relPathsOutFilesUnderDataFolder);
