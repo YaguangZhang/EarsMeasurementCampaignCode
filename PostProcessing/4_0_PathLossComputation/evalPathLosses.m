@@ -342,7 +342,7 @@ plot3k([distsFromTx, zeros(length(distsFromTx),1), ...
     validPathLossesWithValidGps(:,1)], 'Marker', {'.', 6});
 curAxis = axis;
 % We will start from x=1.
-axis([min(distsFromTx, 1), max(distsFromTx)+100, curAxis(3:6)]);
+axis([min([distsFromTx; 1]), max(distsFromTx)+100, curAxis(3:6)]);
 view(0, 0); set(gca, 'XScale', 'log'); grid on;
 newXTicks = [1,10,100,200,500,1000];
 set(gca, 'XTickLabels',newXTicks);

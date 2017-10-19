@@ -163,7 +163,7 @@ hCompBTLWithItuSiteGenOverRoofsLoS = figure; hold on; colormap jet;
 plot3k([distsFromTx, zeros(length(distsFromTx),1), ...
     validPathLossesWithValidGps(:,1)], 'Marker', {'.', 6});
 curAxis = axis;
-axis([min(distsFromTx, 1), max(distsFromTx)+100, curAxis(3:6)]);
+axis([min([distsFromTx; 1]), max(distsFromTx)+100, curAxis(3:6)]);
 % ITU model results.
 yPlaneZeroPadding = zeros(length(dsInM),1);
 hMean = plot3(dsInM, yPlaneZeroPadding, pathLossesInDbMeans, 'k-');
@@ -189,7 +189,7 @@ hCompBTLLoSOnlyWithItuSiteGenOverRoofsLoS = figure; hold on; colormap jet;
 plot3k([distsFromTx(boolsLoSPathLossRecs), zeros(sum(boolsLoSPathLossRecs),1), ...
     validPathLossesWithValidGps(boolsLoSPathLossRecs,1)], 'Marker', {'.', 6});
 curAxis = axis;
-axis([min(distsFromTx, 1), max(distsFromTx)+100, curAxis(3:6)]);
+axis([min([distsFromTx; 1]), max(distsFromTx)+100, curAxis(3:6)]);
 % ITU model results.
 yPlaneZeroPadding = zeros(length(dsInM),1);
 hMean = plot3(dsInM, yPlaneZeroPadding, pathLossesInDbMeans, 'k-');
