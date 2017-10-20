@@ -130,10 +130,10 @@ for idxPar=1:length(allSeriesParentDirs)
         % Put them into the latex snippet.
         fprintf(fID, '\\begin{figure}[ht] \\caption{Photo from the antenna}\n');
         fprintf(fID, '\\includegraphics[width=0.9\\textwidth]{%s}\\centering\\end{figure}\n', ...
-            ['"',replace(photosAnten(idxSeries).name, '.png', ''),'"']);
+            ['"',replace(antennaFileName, '.png', ''),'"']);
         fprintf(fID, '\\begin{figure}[ht] \\caption{Photo for the setup}\n');
         fprintf(fID, '\\includegraphics[width=0.9\\textwidth]{%s}\\centering\\end{figure}\n', ...
-            ['"',replace(photosSetup(idxSeries).name, '.png', ''),'"']);
+            ['"',replace(setupFileName, '.png', ''),'"']);
         % Signals. Find the signal over time plots for this series.
         imagesSig = rdir(fullfile(ABS_PATH_TO_PLOTS, ...
             [curParFolderName, '_oneSigPerMeas_series_', num2str(idxSeries), '_*.png']),'',1);
