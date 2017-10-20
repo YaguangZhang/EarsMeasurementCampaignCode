@@ -4,7 +4,7 @@
 %
 % Yaguang Zhang, Purdue, 10/17/2017
 
-clear; clc; close all; 
+clear; clc; close all;
 
 %% Configurations
 
@@ -73,16 +73,32 @@ fInGHz = 28;
 
 % Compute the Gaussian path loss random variables for a distance range.
 dsInMStep = 20;
-dsInM = 55:dsInMStep:1000;
+% The defined range for the model.
+dsInMRecRange = [55; 1000];
+dsInM = dsInMRecRange(1):dsInMStep:dsInMRecRange(2);
 
-pathLossesInDbGaussian = arrayfun(@(d) ...
-    ituSiteGeneralOverRoofTopsLoS( fInGHz, d ), dsInM);
+ituModFctLoS = @(ds) arrayfun(@(d) ...
+    ituSiteGeneralOverRoofTopsLoS( fInGHz, d ), ds);
+ituPathLossesInDbGaussianLoS = ituModFctLoS(dsInM);
 
 % Extract the means and variances for plotting.
 pathLossesInDbMeans = arrayfun(@(p) ...
-    p.pathLossInDbMean, pathLossesInDbGaussian)';
+    p.pathLossInDbMean, ituPathLossesInDbGaussianLoS)';
 pathLossesInDbVars = arrayfun(@(p) ...
-    p.pathLossInDbVar, pathLossesInDbGaussian)';
+    p.pathLossInDbVar, ituPathLossesInDbGaussianLoS)';
+
+% Extend the model to 1 m (out of the defined range).
+dsInMStepExt = 1;
+dsInMExt = 1:dsInMStepExt:dsInMRecRange(1);
+
+pathLossesInDbGaussianExt = arrayfun(@(d) ...
+    ituSiteGeneralOverRoofTopsLoS( fInGHz, d ), dsInMExt);
+
+% Extract the means and variances for plotting.
+pathLossesInDbMeansExt = arrayfun(@(p) ...
+    p.pathLossInDbMean, pathLossesInDbGaussianExt)';
+pathLossesInDbVarsExt = arrayfun(@(p) ...
+    p.pathLossInDbVar, pathLossesInDbGaussianExt)';
 
 %% Extract Valid Path Losses
 
@@ -98,7 +114,7 @@ validRelPathsOutFilesUnderDataFolder ...
 validPLWithValidGPSCell = num2cell(validPathLossesWithValidGps, 2);
 % Compute the TX and RX pair distances. Note that we will use the averaged
 % GPS coordinates here.
-distsFromTx = cellfun(@(s) ...
+siteDistsFromTx = cellfun(@(s) ...
     norm([1000.*lldistkm([s(5) s(6)],[TX_LAT,TX_LON]), TX_HEIGHT_M-s(7)]), ...
     validPLWithValidGPSCell);
 
@@ -134,8 +150,57 @@ seriesNLoS = unique(vertcat(seriesNLoS{:}));
 boolsLoSPathLossRecs = cellfun(@(p) ...
     ~contains(strrep(strrep(p, '/', '_'), '\', '_'), seriesNLoS), ...
     validRelPathsOutFilesUnderDataFolder);
-
+siteDistsFromTxLoS = siteDistsFromTx(boolsLoSPathLossRecs);
+validPathLossesWithValidGpsLoS = ...
+    validPathLossesWithValidGps(boolsLoSPathLossRecs, 1);
 disp('    Done!')
+
+%% Regression for Two Reference Models
+% The close-in model:
+%   PL(d) = PL(d0) + 10*n*log10(d/d0)
+% And the Alpha/Beta/Gamma model:
+%   PL(d) = 10*alpha*log10(d/d0) + beta + 10*gamma*log10(frequency in GHz)
+
+[nLoS, closeInModFctLoS] = fitCloseIn(siteDistsFromTxLoS, ...
+    validPathLossesWithValidGpsLoS, fInGHz*10^9);
+% Use the ITU recommended value for site-general LoS propagation over
+% roof-tops.
+gamma0 = 1.96;
+[alphaLoS, bettaLoS, ABGWithGivenGModFctLoS] = fitAlphaBetaWithGivenGamma(...
+    siteDistsFromTxLoS, ...
+    validPathLossesWithValidGpsLoS, fInGHz, gamma0);
+
+% For plotting.
+dsInMComb = [dsInM, dsInMExt];
+pathLossesInDbMeansClo = closeInModFctLoS(dsInMComb);
+pathLossesInDbMeansABG = ABGWithGivenGModFctLoS(dsInMComb);
+% Compute the root mean squared error.
+
+[rmseItuLoS, distsItuLoS] = computeRmseOverDist( ...
+    siteDistsFromTxLoS, ...
+    arrayfun(@(p) p.pathLossInDbMean, ituModFctLoS(siteDistsFromTxLoS)), ...
+    validPathLossesWithValidGpsLoS);
+
+[rmseCloLoS, distsCloLoS] = computeRmseOverDist( ...
+    siteDistsFromTxLoS, ...
+    closeInModFctLoS(siteDistsFromTxLoS), ...
+    validPathLossesWithValidGpsLoS);
+
+[rmseABGLoS, distsABGLoS] = computeRmseOverDist( ...
+    siteDistsFromTxLoS, ...
+    ABGWithGivenGModFctLoS(siteDistsFromTxLoS), ...
+    validPathLossesWithValidGpsLoS);
+
+%% Save the Results
+absPathToSaveResults = fullfile(ABS_PATH_TO_SAVE_PLOTS, 'resultsLoS');
+save(absPathToSaveResults, ...
+    'siteDistsFromTxLoS', 'validPathLossesWithValidGpsLoS', ...
+    'ituModFctLoS', ...
+    'nLoS', 'closeInModFctLoS', ...
+    'alphaLoS', 'bettaLoS', 'gamma0', 'ABGWithGivenGModFctLoS', ...
+    'rmseItuLoS', 'distsItuLoS', ...
+    'rmseCloLoS', 'distsCloLoS', ...
+    'rmseABGLoS', 'distsABGLoS');
 
 %% Plot
 
@@ -160,10 +225,10 @@ hold off;
 % used), then add the ITU result onto it.
 hCompBTLWithItuSiteGenOverRoofsLoS = figure; hold on; colormap jet;
 % Our basic transission losses.
-plot3k([distsFromTx, zeros(length(distsFromTx),1), ...
+plot3k([siteDistsFromTx, zeros(length(siteDistsFromTx),1), ...
     validPathLossesWithValidGps(:,1)], 'Marker', {'.', 6});
 curAxis = axis;
-axis([min([distsFromTx; 1]), max(distsFromTx)+100, curAxis(3:6)]);
+axis([min([siteDistsFromTx; 1]), max(siteDistsFromTx)+100, curAxis(3:6)]);
 % ITU model results.
 yPlaneZeroPadding = zeros(length(dsInM),1);
 hMean = plot3(dsInM, yPlaneZeroPadding, pathLossesInDbMeans, 'k-');
@@ -171,13 +236,13 @@ h3Sigma = plot3(dsInM, yPlaneZeroPadding, pathLossesInDbMeans + 3.*pathLossesInD
     'Color', ones(1,3).*0.7);
 plot3(dsInM, yPlaneZeroPadding, pathLossesInDbMeans - 3.*pathLossesInDbVars, '-.', ...
     'Color', ones(1,3).*0.7);
-view(0, 0); 
+view(0, 0);
 set(gca, 'XScale', 'log'); grid on;
 newXTicks = [1,10,100,200,500,1000];
 set(gca, 'XTickLabels',newXTicks);
 set(gca, 'XTick',newXTicks);
 hLegend = legend([hMean, h3Sigma], 'Mean', '3 sigma range', ...
-    'Location','southeast');
+    'Location','northwest');
 title('Path Losses over Distance (Large Scale & SIMO)');
 title(hLegend, 'ITU Reference Model');
 xlabel('Distance to Tx (m)'); ylabel(''); zlabel('Path Loss (dB)');
@@ -186,10 +251,10 @@ hold off;
 % The same for only the LoS cases.
 hCompBTLLoSOnlyWithItuSiteGenOverRoofsLoS = figure; hold on; colormap jet;
 % Our basic transission losses.
-plot3k([distsFromTx(boolsLoSPathLossRecs), zeros(sum(boolsLoSPathLossRecs),1), ...
-    validPathLossesWithValidGps(boolsLoSPathLossRecs,1)], 'Marker', {'.', 6});
+plot3k([siteDistsFromTxLoS, zeros(sum(boolsLoSPathLossRecs),1), ...
+    validPathLossesWithValidGpsLoS], 'Marker', {'.', 6});
 curAxis = axis;
-axis([min([distsFromTx; 1]), max(distsFromTx)+100, curAxis(3:6)]);
+axis([min([siteDistsFromTx; 1]), max(siteDistsFromTx)+100, curAxis(3:6)]);
 % ITU model results.
 yPlaneZeroPadding = zeros(length(dsInM),1);
 hMean = plot3(dsInM, yPlaneZeroPadding, pathLossesInDbMeans, 'k-');
@@ -197,17 +262,77 @@ h3Sigma = plot3(dsInM, yPlaneZeroPadding, pathLossesInDbMeans + 3.*pathLossesInD
     'Color', ones(1,3).*0.7);
 plot3(dsInM, yPlaneZeroPadding, pathLossesInDbMeans - 3.*pathLossesInDbVars, '-.', ...
     'Color', ones(1,3).*0.7);
-view(0, 0); 
+view(0, 0);
 set(gca, 'XScale', 'log'); grid on;
 newXTicks = [1,10,100,200,500,1000];
 set(gca, 'XTickLabels',newXTicks);
 set(gca, 'XTick',newXTicks);
 hLegend = legend([hMean, h3Sigma], 'Mean', '3 sigma range', ...
-    'Location','southeast');
+    'Location','northwest');
 title('Path Losses over Distance (Large Scale & SIMO, LoS Only)');
 title(hLegend, 'ITU Reference Model');
 xlabel('Distance to Tx (m)'); ylabel(''); zlabel('Path Loss (dB)');
 hold off;
+
+% Update: compare with two other models. The same for only the LoS cases.
+hCompModelsLoS = figure; hold on; colormap jet;
+% Our basic transission losses.
+plot3k([siteDistsFromTxLoS, zeros(sum(boolsLoSPathLossRecs),1), ...
+    validPathLossesWithValidGpsLoS], 'Marker', {'.', 6});
+curAxis = axis;
+axis([min([siteDistsFromTx; 1]), max(siteDistsFromTx)+100, curAxis(3:6)]);
+% ITU model results.
+ituLineWidth = 1.5;
+yPlaneZeroPadding = zeros(length(dsInM),1);
+hMean = plot3(dsInM, yPlaneZeroPadding, pathLossesInDbMeans, 'k-', ...
+    'LineWidth', ituLineWidth);
+h3Sigma = plot3(dsInM, yPlaneZeroPadding, pathLossesInDbMeans + 3.*pathLossesInDbVars, '-.', ...
+    'Color', ones(1,3).*0.7, ...
+    'LineWidth', ituLineWidth);
+plot3(dsInM, yPlaneZeroPadding, pathLossesInDbMeans - 3.*pathLossesInDbVars, '-.', ...
+    'Color', ones(1,3).*0.7, ...
+    'LineWidth', ituLineWidth);
+% Extended ITU model results.
+yPlaneZeroPaddingExt = zeros(length(dsInMExt),1);
+hMeanExt = plot3(dsInMExt, yPlaneZeroPaddingExt, pathLossesInDbMeansExt, 'k-.');
+h3SigmaExt = plot3(dsInMExt, yPlaneZeroPaddingExt, ...
+    pathLossesInDbMeansExt + 3.*pathLossesInDbVarsExt, '-.', ...
+    'Color', ones(1,3).*0.7);
+plot3(dsInMExt, yPlaneZeroPaddingExt, pathLossesInDbMeansExt ...
+    - 3.*pathLossesInDbVarsExt, '-.', ...
+    'Color', ones(1,3).*0.7);
+% Fitted close-in model.
+yPlaneZeroPaddingComb = zeros(length(dsInMComb),1);
+hClo = plot3(dsInMComb, yPlaneZeroPaddingComb, ...
+    pathLossesInDbMeansClo, 'r--');
+% Fitted Alpha/Beta/Gamma model (with a given gamma).
+hABG = plot3(dsInMComb, yPlaneZeroPaddingComb, ...
+    pathLossesInDbMeansABG, 'b:');
+view(0, 0);
+set(gca, 'XScale', 'log'); grid on;
+newXTicks = [1,10,100,200,500,1000];
+set(gca, 'XTickLabels',newXTicks);
+set(gca, 'XTick',newXTicks);
+hLegend = legend([hMean, h3Sigma, hMeanExt, hClo, hABG], ...
+    'ITU Mean', 'ITU 3-sigma Range', 'ITU Extrapolated', ...
+    'Close-in', 'Alpha/Beta/Gamma', ...
+    'Location', 'northwest');
+title('Path Losses over Distance (Large Scale & SIMO, LoS Only)');
+title(hLegend, 'Reference Models');
+xlabel('Distance to Tx (m)'); ylabel(''); zlabel('Path Loss (dB)');
+hold off;
+
+% Root mean errors for these models.
+hCompModRmseLoS = figure; hold on;
+hRmsqItu = plot(distsItuLoS, rmseItuLoS, 'k*');
+hRmsqClo = plot(distsCloLoS, rmseCloLoS, 'ro');
+hRmsqABG = plot(distsABGLoS, rmseABGLoS, 'b^');
+hold off; grid on;
+legend([hRmsqItu, hRmsqClo, hRmsqABG], 'ITU Mean', 'Close-in', ...
+    'Alpha/Beta/Gamma');
+% set(gca, 'XScale', 'log');
+xlabel('Distance to Tx (m)');
+ylabel('Mean Square Error for Path Loss (dB)');
 
 % Save the plots.
 absPathToSavePlots = fullfile(ABS_PATH_TO_SAVE_PLOTS, 'ituSiteGenOverRoofsLoS');
@@ -221,5 +346,13 @@ saveas(hCompBTLWithItuSiteGenOverRoofsLoS, [absPathToSavePlots, '.png']);
 absPathToSavePlots = fullfile(ABS_PATH_TO_SAVE_PLOTS, 'compBTLLoSOnlyWithItuSiteGenOverRoofsLoS');
 saveas(hCompBTLLoSOnlyWithItuSiteGenOverRoofsLoS, [absPathToSavePlots, '.fig']);
 saveas(hCompBTLLoSOnlyWithItuSiteGenOverRoofsLoS, [absPathToSavePlots, '.png']);
+
+absPathToSavePlots = fullfile(ABS_PATH_TO_SAVE_PLOTS, 'compModelsLoS');
+saveas(hCompModelsLoS, [absPathToSavePlots, '.fig']);
+saveas(hCompModelsLoS, [absPathToSavePlots, '.png']);
+
+absPathToSavePlots = fullfile(ABS_PATH_TO_SAVE_PLOTS, 'compModRmseLoS');
+saveas(hCompModRmseLoS, [absPathToSavePlots, '.fig']);
+saveas(hCompModRmseLoS, [absPathToSavePlots, '.png']);
 
 % EOF

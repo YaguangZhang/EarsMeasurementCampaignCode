@@ -27,7 +27,7 @@ if (fInGHz<F_IN_GHZ_RANG(1) || fInGHz>F_IN_GHZ_RANG(2))
         num2str(F_IN_GHZ_RANG(1)), '~', num2str(F_IN_GHZ_RANG(2))]);
 end
 if (dInM<D_IN_M_RANGE(1) || dInM>D_IN_M_RANGE(2))
-    error(['Input dInM is out of required range for the ITU model: ', ...
+    warning(['Input dInM is out of required range for the ITU model: ', ...
         num2str(D_IN_M_RANGE(1)), '~', num2str(D_IN_M_RANGE(2))]);
 end
 
