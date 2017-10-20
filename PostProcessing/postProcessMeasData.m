@@ -18,6 +18,7 @@ setPath;
 % This will generate: 'allSeriesParentDirs', 'allSeriesDirs'.
 
 % genPlots;
+genLatexForPlots;
 
 %% 2_0_Calibration: Calibrate the Gnu Radio RX.
 % This will generate: 'lsLinesPolys', 'lsLinesPolysInv', 'fittedMeaPs',
@@ -47,5 +48,6 @@ plotBasicTransLossesByCategory;
 %% 5_ComparePathLossesWithItuModels: Compute Ref ITU Results
 
 compareSiteGenOverRoofTopsLoS;
+compareSiteGenOverRoofTopsNLoS;
 
 % EOF

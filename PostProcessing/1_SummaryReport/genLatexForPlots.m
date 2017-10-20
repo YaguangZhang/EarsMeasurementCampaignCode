@@ -109,7 +109,25 @@ for idxPar=1:length(allSeriesParentDirs)
         assert(length(partFolder)==1, 'There should be exactly 1 date & type pair as the name for the parent data folder!');
         partFolder = partFolder{1}{1};
         fprintf(fID, '\\subsubsection{Site label: %s}\n', replace([partFolder,'_Series_',num2str(idxSeries)], '_', '\_'));
-        % Photos.
+        % Photos. We need to make sure that the numbering is correct.
+        antennaFileName = photosAnten(idxSeries).name;
+        idxStartParenthesis = strfind(antennaFileName, '(');
+        idxEndParenthesis = strfind(antennaFileName, ')');
+        if (str2num(antennaFileName((idxStartParenthesis+1):(idxEndParenthesis-1)))~=idxSeries)
+            warning('Antenna photos are not properly sorted. Will replace the index in the filename with idxSeries');
+            antennaFileName = [antennaFileName(1:idxStartParenthesis), ...
+                num2str(idxSeries), antennaFileName(idxEndParenthesis:end)];
+        end
+        % Same for the setup photo.
+        setupFileName = photosSetup(idxSeries).name;
+        idxStartParenthesis = strfind(setupFileName, '(');
+        idxEndParenthesis = strfind(setupFileName, ')');
+        if (str2num(setupFileName((idxStartParenthesis+1):(idxEndParenthesis-1)))~=idxSeries)
+            warning('Setup photos are not properly sorted. Will replace the index in the filename with idxSeries');
+            setupFileName = [setupFileName(1:idxStartParenthesis), ...
+                num2str(idxSeries), setupFileName(idxEndParenthesis:end)];
+        end
+        % Put them into the latex snippet.
         fprintf(fID, '\\begin{figure}[ht] \\caption{Photo from the antenna}\n');
         fprintf(fID, '\\includegraphics[width=0.9\\textwidth]{%s}\\centering\\end{figure}\n', ...
             ['"',replace(photosAnten(idxSeries).name, '.png', ''),'"']);
