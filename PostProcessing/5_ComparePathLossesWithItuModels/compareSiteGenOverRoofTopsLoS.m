@@ -153,6 +153,8 @@ boolsLoSPathLossRecs = cellfun(@(p) ...
 siteDistsFromTxLoS = siteDistsFromTx(boolsLoSPathLossRecs);
 validPathLossesWithValidGpsLoS = ...
     validPathLossesWithValidGps(boolsLoSPathLossRecs, 1);
+validRelPathsSerLoS = validRelPathsOutFilesUnderDataFolder(boolsLoSPathLossRecs);
+
 disp('    Done!')
 
 %% Regression for Two Reference Models
@@ -192,7 +194,7 @@ pathLossesInDbMeansABG = ABGWithGivenGModFctLoS(dsInMComb);
     validPathLossesWithValidGpsLoS);
 
 %% Save the Results
-absPathToSaveResults = fullfile(ABS_PATH_TO_SAVE_PLOTS, 'resultsLoS');
+absPathToSaveResults = fullfile(ABS_PATH_TO_SAVE_PLOTS, 'resultsLoS.mat');
 save(absPathToSaveResults, ...
     'siteDistsFromTxLoS', 'validPathLossesWithValidGpsLoS', ...
     'ituModFctLoS', ...
