@@ -1,4 +1,4 @@
-function [ rmses, dists ] = computeRmseOverDist(dsFromTx, modelLs, measLs)
+function [ rmses, dists, rmseAgg ] = computeRmseOverDist(dsFromTx, modelLs, measLs)
 %COMPUTERMSEOVERDCIST Computes the Root Mean Square Errors over distance. 
 %
 % The samples from the same distance will be used for each RMSE computation
@@ -15,6 +15,8 @@ function [ rmses, dists ] = computeRmseOverDist(dsFromTx, modelLs, measLs)
 %   - rmses, dists
 %     The the resulted root mean square errors and the corresponding
 %     distances.
+%   - rmseAgg
+%     Aggregated root mean square error (one signal value) for this model.
 %
 % Yaguang Zhang, Purdue, 10/19/2017
 
@@ -35,5 +37,9 @@ end
 results = sortrows([rmses, dists], 2);
 rmses = results(:,1);
 dists = results(:,2);
+
+rmseAgg = sqrt(mean(...
+        ( modelLs - measLs ).^2 ...
+        ));
 end
 % EOF

@@ -1,10 +1,10 @@
 function [ LNLoS1 ] ...
     = ituSiteSpecificOverRoofTopsNLoS( fInGHz, dInM, ...
     hRInM, wInM, ... % bInM,
-    phiInDegree, h1InM, h2InM ... %, lInM
-    )
-%ITUSITESPECIFICOVERROOFTOPSnLOS To compute the path loss for nLoS
-%propagation over roof-tops using the site-specific ITU model.
+    phiInDegree, h1InM, h2InM, ... %, lInM
+    FLAG_IGNORE_OUT_OF_RANGE )
+%ITUSITESPECIFICOVERROOFTOPSNLOS To compute the path loss for nLoS
+%propagation over roof-tops using the site-specific ITU model (NLoS1).
 %
 % Inputs:
 %   - fInGHz
@@ -25,6 +25,9 @@ function [ LNLoS1 ] ...
 %     The station 2 antenna height.
 %   - lInM (Update: not used in this model)
 %     The length of the path covered by buildings.
+%   - FLAG_IGNORE_OUT_OF_RANGE
+%     Set this to be true to force the algorithm to use the inputs as they
+%     are.
 %
 % Output:
 %   - LNLoS1
@@ -41,6 +44,10 @@ function [ LNLoS1 ] ...
 
 %% Parameters
 
+if nargin < 8
+    FLAG_IGNORE_OUT_OF_RANGE = false;
+end
+
 F_IN_GHZ_RANG = [0.8, 38];
 D_IN_M_RANGE = [10, 5000];
 
@@ -52,47 +59,48 @@ DELTA_H_2_IN_M_RANGE = [4, min(10, hRInM)];
 % Make sure the inputs are within the required ranges.
 deltaH1InM = h1InM - hRInM;
 deltaH2InM = hRInM - h2InM;
-if (fInGHz<F_IN_GHZ_RANG(1) || fInGHz>F_IN_GHZ_RANG(2))
-    error(['Input fInGHz is out of required range for the ITU model: ', ...
-        num2str(F_IN_GHZ_RANG(1)), '~', num2str(F_IN_GHZ_RANG(2))]);
-end
-if (dInM<D_IN_M_RANGE(1) || dInM>D_IN_M_RANGE(2))
-    error(['Input dInM (', num2str(dInM), ...
-        ') is out of required range for the ITU model: ', ...
-        num2str(D_IN_M_RANGE(1)), '~', num2str(D_IN_M_RANGE(2))]);
-end
-if (wInM<W_IN_M_RANGE(1) || wInM>W_IN_M_RANGE(2))
-    warning(['Input wInM is out of required range for the ITU model: ', ...
-        num2str(W_IN_M_RANGE(1)), '~', num2str(W_IN_M_RANGE(2))]);
-    if wInM<W_IN_M_RANGE(1)
-        wInM = W_IN_M_RANGE(1);
-        warning('dInM has been set to the LOWER bound!');
-    else % dInM>D_IN_M_RANGE(2)
-        wInM = W_IN_M_RANGE(2);
-        warning('dInM has been set to the UPPER bound!');
+if ~FLAG_IGNORE_OUT_OF_RANGE
+    if (fInGHz<F_IN_GHZ_RANG(1) || fInGHz>F_IN_GHZ_RANG(2))
+        error(['Input fInGHz is out of required range for the ITU model: ', ...
+            num2str(F_IN_GHZ_RANG(1)), '~', num2str(F_IN_GHZ_RANG(2))]);
+    end
+    if (dInM<D_IN_M_RANGE(1) || dInM>D_IN_M_RANGE(2))
+        error(['Input dInM (', num2str(dInM), ...
+            ') is out of required range for the ITU model: ', ...
+            num2str(D_IN_M_RANGE(1)), '~', num2str(D_IN_M_RANGE(2))]);
+    end
+    if (wInM<W_IN_M_RANGE(1) || wInM>W_IN_M_RANGE(2))
+        warning(['Input wInM is out of required range for the ITU model: ', ...
+            num2str(W_IN_M_RANGE(1)), '~', num2str(W_IN_M_RANGE(2))]);
+        if wInM<W_IN_M_RANGE(1)
+            wInM = W_IN_M_RANGE(1);
+            warning('dInM has been set to the LOWER bound!');
+        else % dInM>D_IN_M_RANGE(2)
+            wInM = W_IN_M_RANGE(2);
+            warning('dInM has been set to the UPPER bound!');
+        end
+    end
+    if (deltaH1InM<DELTA_H_1_IN_M_RANGE(1) ...
+            || deltaH1InM>DELTA_H_1_IN_M_RANGE(2))
+        error(['Resulted deltaH1InM is out of required range for the ITU model: ', ...
+            num2str(DELTA_H_1_IN_M_RANGE(1)), '~', ...
+            num2str(DELTA_H_1_IN_M_RANGE(2))]);
+    end
+    if (deltaH2InM<DELTA_H_2_IN_M_RANGE(1) ...
+            || deltaH2InM>DELTA_H_2_IN_M_RANGE(2))
+        warning(['Resulted deltaH2InM ', num2str(deltaH2InM), ...
+            ' is out of required range for the ITU model: ', ...
+            num2str(DELTA_H_2_IN_M_RANGE(1)), '~', ...
+            num2str(DELTA_H_2_IN_M_RANGE(2))]);
+        %     if deltaH2InM<DELTA_H_2_IN_M_RANGE(1)
+        %         deltaH2InM = DELTA_H_2_IN_M_RANGE(1); warning('hRInM has
+        %         been set to agree with the deltaH2InM LOWER bound!');
+        %     else % dInM>D_IN_M_RANGE(2)
+        %         deltaH2InM = DELTA_H_2_IN_M_RANGE(2); warning('hRInM has
+        %         been set to agree with the deltaH2InM UPPER bound!');
+        %     end hRInM = h2InM + deltaH2InM;
     end
 end
-if (deltaH1InM<DELTA_H_1_IN_M_RANGE(1) ...
-        || deltaH1InM>DELTA_H_1_IN_M_RANGE(2))
-    error(['Resulted deltaH1InM is out of required range for the ITU model: ', ...
-        num2str(DELTA_H_1_IN_M_RANGE(1)), '~', ...
-        num2str(DELTA_H_1_IN_M_RANGE(2))]);
-end
-if (deltaH2InM<DELTA_H_2_IN_M_RANGE(1) ...
-        || deltaH2InM>DELTA_H_2_IN_M_RANGE(2))
-    warning(['Resulted deltaH2InM ', num2str(deltaH2InM), ...
-        ' is out of required range for the ITU model: ', ...
-        num2str(DELTA_H_2_IN_M_RANGE(1)), '~', ...
-        num2str(DELTA_H_2_IN_M_RANGE(2))]);
-    %     if deltaH2InM<DELTA_H_2_IN_M_RANGE(1)
-    %         deltaH2InM = DELTA_H_2_IN_M_RANGE(1); warning('hRInM has been
-    %         set to agree with the deltaH2InM LOWER bound!');
-    %     else % dInM>D_IN_M_RANGE(2)
-    %         deltaH2InM = DELTA_H_2_IN_M_RANGE(2); warning('hRInM has been
-    %         set to agree with the deltaH2InM UPPER bound!');
-    %     end hRInM = h2InM + deltaH2InM;
-end
-
 %% Calculation
 
 % Wavelength.
