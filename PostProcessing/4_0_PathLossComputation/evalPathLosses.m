@@ -56,6 +56,11 @@ NUM_SIGMA_FOR_THRESHOLD = 3.5;
 % Set this to true if it is necessary to generate the debug figure for
 % computing antenna gains.
 FLAG_DEBUG = false;
+
+% Set these accordingly if hard-coded GPS coordinates should be used.
+sitesWithWrongGps = {'20170620_LargeScale_Series_9'};
+% According to Google Maps.
+correctLatMLonMAltMs = {[38.984662, -76.485102, 8]};
 %% Before Processing the Data
 
 disp(' ------------------- ')
@@ -169,10 +174,22 @@ for idxSeries = 1:numSeries
         curOutFileDir = allOutFilesDirs{idxSeries}(idxOutFile);
         [lat, lon, alt, gpsLog] = fetchGpsForOutFileDir(curOutFileDir);
         
-        % Get the median RX (lat, lon, alt) for all the GPS samples in this
-        % series, which will be needed for the antenna gain calculation.
-        [latM, lonM, altM] = fetchMedianGpsForSeriesDir(...
-            curOutFileDir.folder);
+        % Check whether this site is in the list of sitesWithWrongGps.
+        isCurSiteWithWrongGps = cellfun(@(s) ...
+            cosntains(strrep(curOutFileDir.folder, filesep, '_'), s), ...
+            sitesWithWrongGps);
+        if isCurSiteWithWrongGps
+            idxSiteWithWrongGps = find(isCurSiteWithWrongGps, 1);
+            latM = correctLatMLonMAltMs{idxSiteWithWrongGps}(1);
+            lonM = correctLatMLonMAltMs{idxSiteWithWrongGps}(2);
+            altM = correctLatMLonMAltMs{idxSiteWithWrongGps}(3);
+        else
+            % Get the median RX (lat, lon, alt) for all the GPS samples in
+            % this series, which will be needed for the antenna gain
+            % calculation.
+            [latM, lonM, altM] = fetchMedianGpsForSeriesDir(...
+                curOutFileDir.folder);
+        end
         
         % Compute b for the calibration line corresponding to the RX gain.
         usrpGain = str2double(gpsLog.rxChannelGain);
@@ -267,6 +284,7 @@ maxMeasurablePathLossInfo.maxMeasurablePathLossInDb = ...
     + maxMeasurablePathLossInfo.rxGain;
 
 %% Save the Results
+
 disp('    Saving the results...')
 % For absPathsOutFiles, convert it to relative paths under the data folder,
 % which will already contain enough information we need.
