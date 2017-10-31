@@ -50,4 +50,7 @@ plotBasicTransLossesByCategory;
 compareSiteGenOverRoofTopsLoS;
 compareSiteGenOverRoofTopsNLoS;
 
+%% 6_MapPathLossesToPlusPatterns: Generate Path Loss over Possition Plots
+mapPathLossesToPlusPatterns;
+
 % EOF
