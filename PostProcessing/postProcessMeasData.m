@@ -51,6 +51,10 @@ compareSiteGenOverRoofTopsLoS;
 compareSiteGenOverRoofTopsNLoS;
 
 %% 6_MapPathLossesToPlusPatterns: Generate Path Loss over Possition Plots
+% The pattern will look like a "+" sign.
 mapPathLossesToPlusPatterns;
+
+%% 7_SimpleModelsForNLoSByBuildings: Modeling Building Blockage
+simpleModelsForNLoSByBuildings;
 
 % EOF

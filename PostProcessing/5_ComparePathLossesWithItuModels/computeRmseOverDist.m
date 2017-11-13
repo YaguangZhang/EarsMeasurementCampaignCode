@@ -8,9 +8,9 @@ function [ rmses, dists, rmseAgg ] = computeRmseOverDist(dsFromTx, modelLs, meas
 %   - dsFromTx
 %     The distances from the TX.
 %   - modelLs
-%     The paths losses from the model.
+%     The paths losses in dB from the model.
 %   - measLs
-%     The measured reference paths losse.
+%     The measured reference paths losses in dB.
 % Output:
 %   - rmses, dists
 %     The the resulted root mean square errors and the corresponding

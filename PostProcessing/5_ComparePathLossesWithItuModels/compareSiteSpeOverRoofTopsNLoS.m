@@ -20,7 +20,7 @@ ABS_PATH_TO_CATEGORY_TXTS = fullfile(pwd, ...
 cd('..'); setPath;
 
 % Configure other paths accordingly.
-ABS_PATH_TO_SAVE_PLOTS = fullfile(ABS_PATH_TO_EARS_SHARED_FOLDER, ...
+ABS_PATH_TO_SAVE_PLOTS_DEFAULT = fullfile(ABS_PATH_TO_EARS_SHARED_FOLDER, ...
     'PostProcessingResults', 'ComparePathLossesWithItuModels');
 
 % Reuse results from loadMeasCampaignInfo.m, evalPathLosses.m.
@@ -31,7 +31,15 @@ ABS_PATH_TO_PATH_LOSSES_FILE= fullfile(ABS_PATH_TO_EARS_SHARED_FOLDER, ...
     'pathLossesWithGpsInfo.mat');
 
 % Set this to be true to skip the input range check for the ITU NLoS model.
-FLAG_IGNORE_OUT_OF_RANGE = false;
+FLAG_IGNORE_OUT_OF_RANGE = true;
+
+% Use a different foldername if FLAG_IGNORE_OUT_OF_RANGE is set to true.
+if FLAG_IGNORE_OUT_OF_RANGE
+    ABS_PATH_TO_SAVE_PLOTS = [ABS_PATH_TO_SAVE_PLOTS_DEFAULT, ...
+        'IgnoreInputRange'];
+else
+    ABS_PATH_TO_SAVE_PLOTS = ABS_PATH_TO_SAVE_PLOTS_DEFAULT;
+end
 
 % Set this to be true to show each NLoS location on a map, interactively,
 % for manual inspection.
@@ -48,7 +56,7 @@ if exist(ABS_PATH_TO_SAVE_PLOTS, 'dir')~=7
     mkdir(ABS_PATH_TO_SAVE_PLOTS);
 end
 
-%% Get Info for Measurement Data Files and Calibration Polynomials
+%% Get Info for Measurement Data Files and Path Losses
 
 disp(' ')
 disp('    Loading results from: ')
@@ -354,8 +362,8 @@ pathLossesInDbMeansABG = ABGWithGivenGModFctNLoS(dsInMComb);
     validPathLossesWithValidGpsNLoS);
 
 %% Save the Results
-absPathToLoadLoSResults = fullfile(ABS_PATH_TO_SAVE_PLOTS, 'resultsNLoS.mat');
-save(absPathToLoadLoSResults, ...
+absPathToSaveNLoSResults = fullfile(ABS_PATH_TO_SAVE_PLOTS, 'resultsNLoS.mat');
+save(absPathToSaveNLoSResults, ...
     'siteDistsFromTxNLoS', 'validPathLossesWithValidGpsNLoS', ...
     'validRelPathsSerNLoS', ...
     'nNLoS', 'closeInModFctNLoS', ...
@@ -438,7 +446,8 @@ xlabel('Distance to Tx (m)');
 ylabel('Mean Square Error for Path Loss (dB)');
 
 %% Also Generate One Aggregate Plot for the RMSE
-absPathToLoadLoSResults = fullfile(ABS_PATH_TO_SAVE_PLOTS, 'resultsLoS.mat');
+absPathToLoadLoSResults = fullfile(ABS_PATH_TO_SAVE_PLOTS_DEFAULT, ...
+    'resultsLoS.mat');
 load(absPathToLoadLoSResults);
 
 hCompModRmseAgg = figure; hold on;
