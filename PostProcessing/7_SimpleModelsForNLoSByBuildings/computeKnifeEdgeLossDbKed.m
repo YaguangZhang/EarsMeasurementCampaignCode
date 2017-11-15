@@ -21,7 +21,8 @@ function [ lossDb ] = computeKnifeEdgeLossDbKed( ...
 %
 % Output:
 %    - lossDb
-%      The resulting knife edge loss in dB.
+%      The resulting knife edge loss in dB. In this function, we will get
+%      negative numbers to indicate loss.
 %
 % Yaguang Zhang, Purdue, 11/07/2017
 
@@ -58,7 +59,9 @@ if(boolInside)
     d2 = norm([crossPtX, crossPtY, heightBuilding] - [rxX, rxY, rxHeightM]);
     
     % The knife-edge loss for the top horizontal edge.
-    hHor = norm([crossPtX, crossPtY, heightBuilding] - interPt);
+    %  hHor = norm([crossPtX, crossPtY, heightBuilding] - interPt);
+    hHor = distancePointLine3d([crossPtX, crossPtY, heightBuilding], ...
+        [interPt, interPt-[txX, txY, txHeightM]]);
     % The knife-edge loss for the closer horizontal edge.
     distMToEdges = nan(2,1);
     for idxEdge = 1:2
@@ -74,7 +77,9 @@ if(boolInside)
         otherwise
             error('There should be one closer verticle edge!')
     end
-    hVer = norm(crossPtVer - interPt);
+    % hVer = norm(crossPtVer - interPt);
+    hVer = distancePointLine3d(crossPtVer, ...
+        [interPt, interPt-[txX, txY, txHeightM]]);
     
     % Use the smaller h to get a smaller loss. Intuitively, this means we
     % only consider the dominant knife edge path (hor / ver).
@@ -121,27 +126,49 @@ if FLAG_DEBUG
         % Conti track.
         [x,y,zone] = deg2utm(curPathLossWithGps(2), curPathLossWithGps(3));
         if strcmp(zone, txZone)
-            plot3(x, y, rxHeightM, '*', 'Color', ones(1,3)*0.9);
+            hTrack = plot3(x, y, rxHeightM, '.-', 'Color', ones(1,3)*0.5);
         end
     end
     
-    patch([crossEdgeStartX, crossEdgeStartX, crossEdgeEndX, crossEdgeEndX], ...
+    hWall = patch([crossEdgeStartX, crossEdgeStartX, crossEdgeEndX, crossEdgeEndX], ...
         [crossEdgeStartY, crossEdgeStartY, crossEdgeEndY, crossEdgeEndY], ...
-        [0, heightBuilding, heightBuilding, 0], 'red');
-    plot3(txX, txY, txHeightM, '^b', 'MarkerSize', 5, 'MarkerFaceColor', 'b');
-    plot3(rxX, rxY, rxHeightM, 'vb', 'MarkerSize', 5, 'MarkerFaceColor', 'g');
-    plot3([txX,rxX], [txY,rxY], [txHeightM,rxHeightM], 'k-.');
+        [0, heightBuilding, heightBuilding, 0], 'red', 'FaceAlpha', 0.9);
+    hTx = plot3(txX, txY, txHeightM, '^k', 'MarkerSize', 5, ...
+        'LineWidth', 0.5, 'MarkerFaceColor', 'b');
+    hRx = plot3(rxX, rxY, rxHeightM, 'vk', 'MarkerSize', 5, ...
+        'LineWidth', 0.5, 'MarkerFaceColor', 'g');
+    lineWidthPts = 1.5;
+    hLoS = plot3([txX,rxX], [txY,rxY], [txHeightM,rxHeightM], 'b-.', ...
+        'LineWidth', 1);
     if hHor < hVer
         % The interPt is closer to the top horizontal edge.
-        plot3(crossPtX, crossPtY, heightBuilding, 'xk', 'MarkerSize', 5);
+        crossPt = [crossPtX, crossPtY, heightBuilding];
+        hCross = plot3(crossPtX, crossPtY, heightBuilding, ...
+            'ok', 'MarkerSize', 4, ...
+        'LineWidth', 1, 'MarkerFaceColor', 'g');
     else
-        plot3(crossPtVer(1), crossPtVer(2), crossPtVer(3), ...
-            'xk', 'MarkerSize', 5);
+        crossPt = crossPtVer;
+        hCross = plot3(crossPtVer(1), crossPtVer(2), crossPtVer(3), ...
+            'ok', 'MarkerSize', 4, ...
+        'LineWidth', 1, 'MarkerFaceColor', 'g');
     end
-    plot3(interPt(1), interPt(2), interPt(3), 'ok', 'MarkerSize', 5);
+    hShortestPath = plot3([txX,crossPt(1)], [txY,crossPt(2)], ...
+        [txHeightM,crossPt(3)], 'k-', ...
+        'LineWidth', 1);
+    plot3([rxX,crossPt(1)], [rxY,crossPt(2)], ...
+        [rxHeightM,crossPt(3)], 'k-', ...
+        'LineWidth', 1);
+    % hInters = plot3(interPt(1), interPt(2), interPt(3), 'ok', 'MarkerSize', 4, ...
+    %    'LineWidth', lineWidthPts, 'MarkerFaceColor', 'w');
     axis equal;
-    view(3); xlabel('x'); ylabel('y'); zlabel('z'); grid on;
-    title(['lossDb = ', num2str(lossDb)]);
+    legend([hTx, hTrack, hRx, hWall, hShortestPath, hCross, hLoS], 'TX', ...
+        'GPS Track', 'RX Location of Interest', ...
+        'Building Wall', 'Shortest Path', ...
+        'Crossing Point',  ...
+        'Imaginary LoS Path', 'Location', 'northwest');
+    view(3); xlabel('x (m)'); ylabel('y (m)'); zlabel('height (m)'); grid on;
+    disp(['lossDb = ', num2str(lossDb)]); 
+    set(gca, 'FontWeight', 'bold');
     disp('Debug figure generated. Press any key to continue...')
     pause;
     close(hDebugFif);

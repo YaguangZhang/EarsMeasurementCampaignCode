@@ -57,4 +57,7 @@ mapPathLossesToPlusPatterns;
 %% 7_SimpleModelsForNLoSByBuildings: Modeling Building Blockage
 simpleModelsForNLoSByBuildings;
 
+%% 8_SimpleModelsForNLoSByVegetations: Modeling Foliage Blockage
+simpleModelsForNLoSByVegetations;
+
 % EOF
