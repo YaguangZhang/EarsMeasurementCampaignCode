@@ -27,7 +27,7 @@ switch getenv('computername')
     case 'ZYGLABS-DELL'
         % ZYG's Dell laptop.
         ABS_PATH_TO_EARS_SHARED_FOLDER = ...
-            'C:\Users\Zyglabs\Documents\MEGAsync\EARS';
+            'C:\Users\Zyglabs\OneDrive - purdue.edu\EARS';
     case ''
         % Expected to be Lemma the Mac machine in ZYG's lab.
         assert(ismac, unknownComputerErrorMsg);
