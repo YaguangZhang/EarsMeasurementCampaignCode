@@ -63,4 +63,4 @@ Please contact us if you need more information.
 
 ## License
 
-This project is licensed under the MIT License - please see the [LICENSE.md](LICENSE.md) file for details.
+This project is licensed under the MIT License - please see the [LICENSE](LICENSE) file for details.
