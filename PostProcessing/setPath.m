@@ -28,6 +28,10 @@ switch getenv('computername')
         % ZYG's Dell laptop.
         ABS_PATH_TO_EARS_SHARED_FOLDER = ...
             'C:\Users\Zyglabs\OneDrive - purdue.edu\EARS';
+    case 'ARTSY'
+        % ZYG's lab desktop.
+        ABS_PATH_TO_EARS_SHARED_FOLDER = ...
+            'D:\Google Drive - EARS\Annapolis Measurement Campaign';
     case ''
         % Expected to be Lemma the Mac machine in ZYG's lab.
         assert(ismac, unknownComputerErrorMsg);
