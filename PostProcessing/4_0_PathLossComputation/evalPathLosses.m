@@ -153,6 +153,11 @@ numOutFiles = sum(cellfun(@(d) length(d), allOutFilesDirs));
 % individule .out file, while (latM, latM) is the average (via median)
 % coordinates for all the locked GPS samples on that site.
 pathLossesWithGpsInfo = nan(numOutFiles, 7);
+% We will also store some extra location/angle information in a matrix for
+% the path loss computation in the form of [azRx, elRx, latTx, lonTx,
+% altTx, azTx, elTx].
+pathLossesExtraLocInfo = nan(numOutFiles, 7);
+
 pathLossCounter = 1;
 % Also save the meta info needed to map the path loss back to the
 % measurements. We choose to save the full file path to the .out file for
@@ -236,6 +241,13 @@ for idxSeries = 1:numSeries
         pathLossesWithGpsInfo(pathLossCounter,:) ...
             = [pathLossInDb + txGain + rxGain, lat, lon, alt, ...
             latM, lonM, altM];
+        % Note that the altitude for the TX location was ~1m at USNA, which
+        % we will ignore and use just the employment height in the path
+        % loss evaluation.
+        pathLossesExtraLocInfo(pathLossCounter,:) ...
+            = [curTxInfoLog.rxAz, curTxInfoLog.rxEl, ...
+            TX_LAT, TX_LON, TX_HEIGHT_M, ...
+            curTxInfoLog.txAz, curTxInfoLog.txEl];
         absPathsOutFiles{pathLossCounter} = absPathOutFile;
         pathLossCounter = pathLossCounter+1;
         
@@ -297,7 +309,7 @@ pathPathLossFileToSave = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
     'pathLossesWithGpsInfo.mat');
 save(pathPathLossFileToSave, ...
     'pathLossesWithGpsInfo', 'relPathsOutFilesUnderDataFolder',...
-    'maxMeasurablePathLossInfo');
+    'maxMeasurablePathLossInfo', 'pathLossesExtraLocInfo');
 
 disp('    Done!')
 

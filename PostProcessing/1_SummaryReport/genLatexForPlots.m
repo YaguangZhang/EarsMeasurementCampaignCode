@@ -104,8 +104,9 @@ for idxPar=1:length(allSeriesParentDirs)
     % Illustration for sample measurements.
     fprintf(fID, '\\subsection{Plots for Sample Measurements}\n');
     curSeriesDirs = allSeriesDirs{idxPar};
-    for idxSeries = 1:length(curSeriesDirs)
-        partFolder = regexp(curSeriesDirs(idxSeries).name,'Data\/(201\d+_\w+)\/','tokens');
+    for idxSeries = 1:length(curSeriesDirs)        
+        partFolder = regexp(curSeriesDirs(idxSeries).name, ...
+            ['Data\', filesep, '(201\d+_\w+)\', filesep], 'tokens');
         assert(length(partFolder)==1, 'There should be exactly 1 date & type pair as the name for the parent data folder!');
         partFolder = partFolder{1}{1};
         fprintf(fID, '\\subsubsection{Site label: %s}\n', replace([partFolder,'_Series_',num2str(idxSeries)], '_', '\_'));

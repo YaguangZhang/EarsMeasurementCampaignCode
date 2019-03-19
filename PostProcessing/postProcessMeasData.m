@@ -17,7 +17,7 @@ setPath;
 %% 1_SummaryReport: First run of the dataset.
 % This will generate: 'allSeriesParentDirs', 'allSeriesDirs'.
 
-% genPlots;
+genPlots;
 genLatexForPlots;
 
 %% 2_0_Calibration: Calibrate the Gnu Radio RX.

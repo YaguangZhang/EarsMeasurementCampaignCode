@@ -137,6 +137,11 @@ numContiOutFiles = sum(cellfun(@(d) length(d), contiOutFilesDirs));
 % a matrix, where each row is a [path loss (dB), lat, lon, alt] array for a
 % GPS position.
 contiPathLossesWithGpsInfo = cell(numContiOutFiles, 1);
+% We will also store some extra location/angle information in a matrix for
+% the path loss computation in the form of [azRx, elRx, latTx, lonTx,
+% altTx, azTx, elTx].
+contiPathLossesExtraLocInfo = cell(numContiOutFiles, 1);
+
 % Also save the meta info needed to map the path loss back to the
 % measurements. We choose to save the full file path to the .out file for
 % convenience.
@@ -173,11 +178,22 @@ for idxContiOutFile = 1:numContiOutFiles
     assert(curTxInfoLog.seriesNum==idxCurSer, ...
         'The series index number in the matched Tx info log does not agree with idxCurSer.');
     
+    % Note that the altitude for the TX location was ~1m at USNA, which we
+    % will ignore and use just the employment height in the path loss
+    % evaluation.
+    [numPathLosses, ~] = size(curContiPathLossesWithGpsInfo);
+    curContiPathLossesExtraLocInfo = nan(numPathLosses, 7);
+    for idxPathLoss = 1:numPathLosses
+        curContiPathLossesExtraLocInfo(idxPathLoss,:) ...
+            = [curTxInfoLog.rxAz, curTxInfoLog.rxEl, ...
+            TX_LAT, TX_LON, TX_HEIGHT_M, ...
+            curTxInfoLog.txAz, curTxInfoLog.txEl];
+    end
+    
     % For the cases where TX orientation info is nan, we will ignore the
     % antenna gain calculation.
     if ~any(isnan([curTxInfoLog.txAz, curTxInfoLog.txEl, ...
-            curTxInfoLog.rxAz, curTxInfoLog.rxEl]))
-        [numPathLosses, ~] = size(curContiPathLossesWithGpsInfo);
+            curTxInfoLog.rxAz, curTxInfoLog.rxEl]))        
         for idxPathLoss = 1:numPathLosses
             % Compute the antenna gains.
             %    function [ gain ] = computeAntGain(lat0, lon0, alt0, ...
@@ -209,6 +225,8 @@ for idxContiOutFile = 1:numContiOutFiles
     % Store the results.
     contiPathLossesWithGpsInfo{idxContiOutFile} ...
         = curContiPathLossesWithGpsInfo;
+    contiPathLossesExtraLocInfo{idxContiOutFile} ...
+        = curContiPathLossesExtraLocInfo;
     absPathsContiOutFiles{idxContiOutFile} = absPathOutFile;
 end
 assert(all(~isempty(vertcat(contiPathLossesWithGpsInfo{1:end}))));
@@ -224,7 +242,7 @@ pathContiPathLossesFileToSave = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
 save(pathContiPathLossesFileToSave, ...
     'contiPathLossesWithGpsInfo', ...
     'contiOutFilesRelPathsUnderDataFolder', ...
-    'contiOutFileIndicesReflection');
+    'contiOutFileIndicesReflection', 'contiPathLossesExtraLocInfo');
 
 disp('    Done!')
 
