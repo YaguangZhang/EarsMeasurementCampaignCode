@@ -273,6 +273,8 @@ end
 assert(all(~isnan(pathLossesWithGpsInfo(1:end))));
 
 %% Just for Fun: Get the Maximum Measurable Path Loss
+% Ref:
+%     https://www.everythingrf.com/rf-calculators/minimum-detectable-signal-calculator
 
 maxMeasurablePathLossInfo = struct(...
     'boltzmannsConst', physconst('Boltzmann'), ...
